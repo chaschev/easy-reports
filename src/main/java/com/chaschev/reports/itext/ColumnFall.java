@@ -22,9 +22,6 @@ package com.chaschev.reports.itext;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.pdf.ColumnText;
 
-import static com.chaschev.reports.itext.AdditionResult.OK;
-import static com.chaschev.reports.itext.AdditionResult.OVERFLOW;
-
 class SavePoint{
     float llx;
     float lly;
@@ -55,7 +52,10 @@ public abstract class ColumnFall<DATA, T extends ColumnFall> {
     private transient float backup_urx;
     private transient float backup_ury;
 
-    protected ColumnFall() {
+    protected String name;
+
+    protected ColumnFall(String name) {
+        this.name = name;
     }
 
     float llx;
@@ -72,24 +72,17 @@ public abstract class ColumnFall<DATA, T extends ColumnFall> {
     protected transient CellContentAdder<T, DATA> adder = new SimpleTextAdder();
 
     //TODO move width to composite
-    public ColumnFall(float llx, float lly, float urx, float ury, float... childrenXPositions) {
-        this.llx = llx;
-        this.lly = lly;
-        this.urx = urx;
-        this.ury = ury;
-        this.childrenXPositions = childrenXPositions;
-    }
+
 
 
     public abstract float getYLine();
 
-    public abstract AdditionResult growBy(float height) ;
+    public abstract AdditionResultType growBy(float height) ;
 
     public abstract void setYLine(float y) ;
 
-    public AdditionResult applyAdder(boolean simulate, DATA data, boolean allowBreak) {
-        return adder.add(simulate, (T) this, data);
-    }
+    public abstract AdditionResult applyAdder(boolean simulate, DATA data, boolean allowBreak, boolean afterPageBreak);
+
 
     abstract protected void backupMe();
     abstract protected void rollbackMe();
@@ -149,38 +142,5 @@ public abstract class ColumnFall<DATA, T extends ColumnFall> {
         }
 
         return (T) this;
-    }
-
-
-    public AdditionResult addIterable(Iterable<DATA> datas, boolean allowBreak){
-        if(allowBreak){
-            for (DATA data : datas) {
-                applyAdder(false, data, true);
-            }
-
-            return OK;
-        }else{
-            for (DATA data : datas) {
-                backup();
-
-                AdditionResult result = applyAdder(true, data, false);
-
-                if(result == OVERFLOW){
-                    parent.handlePageBreak();
-                    handlePageBreak();
-                }
-
-                rollback();
-
-                result = applyAdder(false, data, false);
-
-                if(result == OVERFLOW){
-                    throw new IllegalStateException("data cannot be fit into page: " + data);
-                }
-            }
-
-            return OK;
-        }
-
     }
 }

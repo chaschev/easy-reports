@@ -1,17 +1,15 @@
 package com.chaschev.reports.billing;
 
-import com.google.common.base.Function;
+import com.chaschev.reports.itext.CompositeColumnFall;
 import com.itextpdf.text.Chunk;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * User: chaschev
  * Date: 6/14/13
  */
-public class FieldProjector<T> implements Function<T, List> {
+public class FieldProjector<T> extends CompositeColumnFall.Projector<T> {
     protected Field[] fields;
 
     public FieldProjector(Class<T> aClass, String... fieldNames) {
@@ -32,13 +30,13 @@ public class FieldProjector<T> implements Function<T, List> {
     }
 
 
-    public List apply(T obj) {
+    public RowData apply(T obj) {
         try {
-            List result = new ArrayList(fields.length);
+            Object[] result = new Object[fields.length];
             for (int i = 0; i < fields.length; i++) {
-                result.add(new Object[]{new Chunk(String.valueOf(fields[i].get(obj)))});
+                result[i] = new Object[]{new Chunk(String.valueOf(fields[i].get(obj)))};
             }
-            return result;
+            return new RowData(result);
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }

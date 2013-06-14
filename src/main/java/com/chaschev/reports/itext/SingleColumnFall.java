@@ -1,13 +1,17 @@
 package com.chaschev.reports.itext;
 
+import com.chaschev.reports.billing.RowData;
+import com.chaschev.reports.billing.Utils;
 import com.itextpdf.text.Chunk;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Phrase;
 import com.itextpdf.text.pdf.ColumnText;
 import com.itextpdf.text.pdf.PdfContentByte;
 
-import static com.chaschev.reports.itext.AdditionResult.OK;
-import static com.chaschev.reports.itext.AdditionResult.OVERFLOW;
+import java.util.Arrays;
+
+import static com.chaschev.reports.itext.AdditionResultType.OK;
+import static com.chaschev.reports.itext.AdditionResultType.OVERFLOW;
 
 /**
  * User: chaschev
@@ -17,7 +21,8 @@ public class SingleColumnFall<DATA> extends ColumnFall<DATA, SingleColumnFall>{
     ColumnText singleColumn;
     ColumnText backup;
 
-    public SingleColumnFall(PdfContentByte canvas){
+    public SingleColumnFall(String name, PdfContentByte canvas){
+        super(name);
         singleColumn = new ColumnText(canvas);
         backup = new ColumnText(canvas);
     }
@@ -31,25 +36,28 @@ public class SingleColumnFall<DATA> extends ColumnFall<DATA, SingleColumnFall>{
         return this;
     }
 
-    public AdditionResult addChunk(Chunk chunk) {
-        return tryAddTextObjects(chunk);
-    }
-
-    public AdditionResult addPhrase(Phrase phrase) {
-        return tryAddTextObjects(phrase);
-    }
+//    public AdditionResultType addChunk(Chunk chunk) {
+//        return tryAddTextObjects(chunk);
+//    }
+//
+//    public AdditionResultType addPhrase(Phrase phrase) {
+//        return tryAddTextObjects(phrase);
+//    }
 
     public float getYLine() {
         return singleColumn.getYLine();
     }
 
     @Override
-    public AdditionResult growBy(float height) {
-        float newY = singleColumn.getYLine() + height;
+    public AdditionResultType growBy(float height) {
+        float newY = singleColumn.getYLine() - height;
 
         if(newY < lly){
             return OVERFLOW;
         }
+
+        singleColumn.setYLine(newY);
+
         return OK;
     }
 
@@ -58,8 +66,9 @@ public class SingleColumnFall<DATA> extends ColumnFall<DATA, SingleColumnFall>{
     }
 
     @Override
-    public AdditionResult applyAdder(boolean simulate, DATA data, boolean allowBreak) {
-        return adder.add(simulate, this, data);
+    public AdditionResult applyAdder(boolean simulate, DATA data, boolean allowBreak, boolean afterPageBreak) {
+
+        return adder.add(simulate, this, new RowData<DATA>(data));
     }
 
     // todo Remove or refactor
@@ -70,12 +79,12 @@ public class SingleColumnFall<DATA> extends ColumnFall<DATA, SingleColumnFall>{
 
         rollback();
 
-        if (result != OK) {
+        if (result != AdditionResult.OK) {
             return result;
         } else {
             addTextObjects(false, texts);
 
-            return OK;
+            return AdditionResult.OK;
         }
     }
 
@@ -83,9 +92,10 @@ public class SingleColumnFall<DATA> extends ColumnFall<DATA, SingleColumnFall>{
         backup.setACopy(singleColumn);
     }
 
-    public AdditionResult addTextObjects(boolean simulate, Object... texts) {
+    public AdditionResult addTextObjects(boolean simulate, Object[] texts) {
+        Utils.print("[%s]: simple, sim: %s, objs: %s%n", name, simulate, Arrays.toString(texts));
         try {
-            //todo move this into funtions compositions
+            //todo move this into functions compositions
             for (int i = 0; i < texts.length; i++) {
                 Object text = texts[i];
                 if (!(text instanceof Chunk || text instanceof Phrase)) {
@@ -103,7 +113,7 @@ public class SingleColumnFall<DATA> extends ColumnFall<DATA, SingleColumnFall>{
 
             int status = singleColumn.go(simulate);
 
-            return ColumnText.hasMoreText(status) ? OVERFLOW : OK;
+            return ColumnText.hasMoreText(status) ? AdditionResult.OVERFLOW : AdditionResult.OK;
         } catch (DocumentException e) {
             throw new RuntimeException(e);
         }

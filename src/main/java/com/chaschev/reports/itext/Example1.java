@@ -1,14 +1,12 @@
 package com.chaschev.reports.itext;
 
 import com.chaschev.reports.billing.*;
-import com.google.common.base.Function;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.PageSize;
 import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfWriter;
 
 import java.io.FileOutputStream;
-import java.util.List;
 
 /**
  * User: chaschev
@@ -16,6 +14,12 @@ import java.util.List;
  */
 
 abstract class AbstractList extends java.util.AbstractList{
+    int size;
+
+    protected AbstractList(int size) {
+        this.size = size;
+    }
+
     @Override
     public int size() {
         throw new UnsupportedOperationException("AbstractList.size");
@@ -23,6 +27,7 @@ abstract class AbstractList extends java.util.AbstractList{
 }
 
 public class Example1 {
+
     public static void main(String[] args) throws Exception {
         Document document = new Document(PageSize.A4);
         PdfWriter writer = PdfWriter.getInstance(document, new FileOutputStream("e:/test.pdf"));
@@ -30,51 +35,61 @@ public class Example1 {
 
         PdfContentByte canvas = writer.getDirectContent();
 
-        CompositeColumnFall<BSRPatientRow> patientTableFall = new CompositeColumnFall<BSRPatientRow>();
+        CompositeColumnFall<BSRPatientRow, CompositeColumnFall> patientTableRowFall = new CompositeColumnFall<BSRPatientRow, CompositeColumnFall>("patientTable");
 
-        patientTableFall
+        patientTableRowFall
 //            .setRectangle(0, 0, 700, 842)
             .setRelativeWidths(60, 20, 20);
 
-        patientTableFall.document = document;
+        patientTableRowFall.document = document;
 
-        patientTableFall.setChildrenProjector(new FieldProjector<BSRPatientRow>(BSRPatientRow.class, "name", "price1", "price2"));
+        patientTableRowFall.setChildrenProjector(new FieldProjector<BSRPatientRow>(BSRPatientRow.class, "name", "price1", "price2"));
 
-        patientTableFall
-            .addChild(new SingleColumnFall<String>(canvas))
-            .addChild(new SingleColumnFall<String>(canvas))
-            .addChild(new SingleColumnFall<String>(canvas))
+        patientTableRowFall
+            .addChild(new SingleColumnFall<String>("name", canvas))
+            .addChild(new SingleColumnFall<String>("price1", canvas))
+            .addChild(new SingleColumnFall<String>("price2", canvas))
             .calcChildrenPositions();
 
-        CompositeColumnFall<BSRBillingRow> billingCodeFall = new CompositeColumnFall<BSRBillingRow>();
+        IterableCompositeColumnFall<BSRPatientRow> patientTableFall = new IterableCompositeColumnFall<BSRPatientRow>("BSRPatientRow")
+            .setRectangle(0, 0, 700, 842);
 
-        billingCodeFall
-            .setRectangle(0, 0, 700, 842)
+        patientTableFall
+            .setRelativeWidths(1)
+            .setRowFall(patientTableRowFall);
+//            .calcChildrenPositions();
+
+        CompositeColumnFall<BSRBillingRow, CompositeColumnFall> billingCodeRowFall = new CompositeColumnFall<BSRBillingRow, CompositeColumnFall>("codeRow");
+
+        billingCodeRowFall
             .setRelativeWidths(10, 90);
 
-        billingCodeFall.document = document;
+        billingCodeRowFall.document = document;
 
-        billingCodeFall.setChildrenProjector(new Function<BSRBillingRow, List>() {
+        billingCodeRowFall.setChildrenProjector(new CompositeColumnFall.Projector<BSRBillingRow>() {
             @Override
-            public List apply(final BSRBillingRow bRow) {
-                return new AbstractList() {
-                    @Override
-                    public Object get(int index) {
-                        switch (index){
-                            case 0: return new Object[]{bRow.code};
-                            case 1: return bRow.rows;
-                            default: return null;
-                        }
-                    }
-                };
+            public RowData<BSRBillingRow> apply(final BSRBillingRow bRow) {
+                return new RowData<BSRBillingRow>(new Object[]{bRow.code}, bRow.rows);
             }
         }); //new FieldProjector<BSRBillingRow>(BSRBillingRow.class, "code", "rows")
 
-        billingCodeFall
-            .addChild(new SingleColumnFall<StringBuffer>(canvas))
-            .addChild(patientTableFall)
-            .calcChildrenPositions();
+        billingCodeRowFall
+            .addChild(new SingleColumnFall<StringBuffer>("code", canvas))
+            .addChild(patientTableFall);
 
+        billingCodeRowFall.document = document;
+
+        IterableCompositeColumnFall<BSRBillingRow> billingCodeTable = new IterableCompositeColumnFall<BSRBillingRow>("codeTable")
+            .setRectangle(0, 0, 690, 842);
+
+        billingCodeTable.document = document;
+
+        billingCodeTable
+
+            .setRowFall(billingCodeRowFall)
+            .setChildrenProjector(CompositeColumnFall.IDENTITY_PROJECTOR)
+//            .addChild(billingCodeRowFall)
+            .calcChildrenPositions();
 
         ///////////// DATA INIT ///////////////
 
@@ -82,11 +97,15 @@ public class Example1 {
 
         facRow1(physicianRow1, 1000, "Facility 1");
 
-        List<BSRPatientRow> rows = physicianRow1.get("Facility 1").codeToRow.get(10002).rows;
 
-//        patientTableFall.addIterable(rows, true);
+//        List<BSRPatientRow> rows = physicianRow1.get("Facility 1").codeToRow.get(10002).rows;
+//        patientTableFall.parent = null;
+//        patientTableFall.applyAdder(false, rows, true, false);
+//        document.close();
+//        System.exit(0);
 
-        billingCodeFall.addIterable(physicianRow1.get("Facility 1").codeToRow.values(), true);
+
+        billingCodeTable.applyAdder(false, physicianRow1.get("Facility 1").codeToRow.values(), true, false);
 
         document.close();
 
@@ -149,6 +168,11 @@ public class Example1 {
         facRow1.totalSum = total;
 
         billingRow1(facRow1, 10002, 23);
+        billingRow2(facRow1, 10003, 24);
+        billingRow2(facRow1, 10005, 29);
+        billingRow1(facRow1, 10006, 23);
+        billingRow1(facRow1, 10007, 23);
+        billingRow1(facRow1, 10008, 23);
     }
 
     private static void billingRow1(FacilityRow facRow1, int cptCode, int price) {
@@ -160,12 +184,20 @@ public class Example1 {
 //        addPatient(billingRow, 3, "Patient Pat3");
 //        addPatient(billingRow, 3, "Patient Pat3");
 //
-        for(int i = 4;i<60;i++){
+        for(int i = 4;i<80;i++){
             addPatient(billingRow, i, "Patient Pat" + i);
         }
     }
 
     private static void addPatient(BSRBillingRow billingRow, int id, String patientName1) {
         billingRow.addPatient(id, patientName1, "$" + id, "$" + id * 2);
+    }
+
+    private static void billingRow2(FacilityRow facRow1, int cptCode, int price) {
+        BSRBillingRow billingRow = facRow1.get(cptCode, price);
+
+        addPatient(billingRow, 1, "Patient 7");
+        addPatient(billingRow, 2, "Patient 8");
+//
     }
 }

@@ -1,38 +1,53 @@
 package com.chaschev.reports.itext;
 
-import com.google.common.base.Function;
+import com.chaschev.reports.billing.RowData;
+import com.chaschev.reports.billing.Utils;
 import com.google.common.base.Preconditions;
 
-import java.util.List;
+import java.util.Arrays;
 
-import static com.chaschev.reports.itext.AdditionResult.OK;
-import static com.chaschev.reports.itext.AdditionResult.OVERFLOW;
+import static com.chaschev.reports.itext.AdditionResultType.OK;
+import static com.chaschev.reports.itext.AdditionResultType.OVERFLOW;
 
 /**
  * User: chaschev
  * Date: 6/12/13
  */
-public class CompositeColumnFall<DATA> extends ColumnFall<DATA, CompositeColumnFall> {
+
+// (code, patient table) row is this
+public class CompositeColumnFall<DATA, T extends CompositeColumnFall> extends ColumnFall<DATA, T> {
+    public static final Projector IDENTITY_PROJECTOR = new Projector() {
+        @Override
+        protected RowData apply(Object o) {
+            return (RowData) o;
+        }
+    };
     private transient float backup_yLine;
 
     // this is the min of all children
     // for row-mode it's equal to yLine of any of the children
     protected float yLine = Float.MAX_VALUE / 4;
 
-    Filler filler = new Filler();
-
     ColumnFall[] children;
 
-    int breakCount;
+    protected RowFiller rowFiller = new RowFiller();
 
-    Function<DATA, List> childrenProjector;
+    public static abstract class Projector<F>{
+        public RowData project(Object obj){
+            if (obj instanceof RowData) {
+                return (RowData) obj;
+            }
 
-    public CompositeColumnFall() {
+            return apply((F) obj);
+        }
 
+        protected abstract RowData apply(F obj);
     }
 
-    CompositeColumnFall(float llx, float lly, float urx, float ury, float... childrenWidths) {
-        super(llx, lly, urx, ury, childrenWidths);
+    Projector<DATA> childrenProjector;
+
+    public CompositeColumnFall(String name) {
+        super(name);
     }
 
     @Override
@@ -41,7 +56,7 @@ public class CompositeColumnFall<DATA> extends ColumnFall<DATA, CompositeColumnF
     }
 
     @Override
-    public AdditionResult growBy(float height) {
+    public AdditionResultType growBy(float height) {
         yLine -= height;
 
         for (ColumnFall child : children) {
@@ -57,22 +72,18 @@ public class CompositeColumnFall<DATA> extends ColumnFall<DATA, CompositeColumnF
     }
 
     @Override
-    public AdditionResult applyAdder(boolean simulate, DATA data, boolean allowBreak) {
-        //place where it decides to iterate over the data
-        if(data instanceof Iterable){
-            return addIterable((Iterable) data, allowBreak);
-        }else{
-            List list = childrenProjector.apply(data);
+    public AdditionResult applyAdder(boolean simulate, DATA data, boolean allowBreak, boolean afterPageBreak) {
+        RowData rowData = childrenProjector.project(data);
 
-            AdditionResult result = filler.apply(simulate, this, children, list);
+        AdditionResult result = rowFiller.apply(simulate, this, children, rowData, afterPageBreak);
 
-            for (ColumnFall child : children) {
-                yLine = Math.min(yLine, child.getYLine());
-            }
-
-            return result;
+        for (ColumnFall child : children) {
+            yLine = Math.min(yLine, child.getYLine());
         }
+
+        return result;
     }
+
 
     @Override
     protected void backupMe() {
@@ -87,7 +98,6 @@ public class CompositeColumnFall<DATA> extends ColumnFall<DATA, CompositeColumnF
 
     @Override
     public void handlePageBreak() {
-        breakCount++;
 
         if (parent != null) {
             parent.handlePageBreak();
@@ -102,18 +112,12 @@ public class CompositeColumnFall<DATA> extends ColumnFall<DATA, CompositeColumnF
         onNewPage();
     }
 
-    @Override
-    public AdditionResult addIterable(Iterable<DATA> datas, boolean allowBreak) {
-        filler.allowBreak = allowBreak;
-
-        return super.addIterable(datas, allowBreak);
-    }
 
     protected void onNewPage() {
         //print headers
     }
 
-    public CompositeColumnFall<DATA> addChild(ColumnFall columnFall) {
+    public CompositeColumnFall<DATA, T> addChild(ColumnFall columnFall) {
         Preconditions.checkNotNull(childrenRelativeWidths);
 
         if (children == null) {
@@ -134,7 +138,7 @@ public class CompositeColumnFall<DATA> extends ColumnFall<DATA, CompositeColumnF
         return this;
     }
 
-    CompositeColumnFall<DATA> calcChildrenPositions() {
+    CompositeColumnFall<DATA, T> calcChildrenPositions() {
         calcChildrenWidthsFromRelatives();
 
         for (int i = 0; i < children.length; i++) {
@@ -148,10 +152,16 @@ public class CompositeColumnFall<DATA> extends ColumnFall<DATA, CompositeColumnF
             }
         }
 
+        Utils.print("[%s]: calcing positions, rect: [%.1f, %.1f]-[%.1f, %.1f], yLine: %.1f, children: %s%n", name,
+            llx, lly, urx, ury, yLine, Arrays.toString(childrenXPositions)
+        );
+
+
         return this;
     }
 
-    public void setChildrenProjector(Function<DATA, List> childrenProjector) {
+    public T setChildrenProjector(Projector<DATA> childrenProjector) {
         this.childrenProjector = childrenProjector;
+        return (T) this;
     }
 }

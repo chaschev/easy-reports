@@ -1,5 +1,9 @@
 package com.chaschev.reports.itext;
 
+import com.chaschev.reports.billing.RowData;
+
+import java.util.List;
+
 /**
  * Proposed solution:
  *
@@ -24,6 +28,36 @@ package com.chaschev.reports.itext;
  *
  */
 
-public enum AdditionResult{
-    OK, OVERFLOW
+public class AdditionResult{
+    public static final AdditionResult OK = new AdditionResult(null, AdditionResultType.OK);
+    public static final AdditionResult OVERFLOW = new AdditionResult(null, AdditionResultType.OVERFLOW);
+
+    public RowData rowDataLeft;
+    public List thisIterableDataLeft;
+    public AdditionResultType type;
+
+    public AdditionResult(AdditionResultType type) {
+        this.type = type;
+    }
+
+    public static AdditionResult newRowDataLeft(RowData rowDataLeft){
+        return new AdditionResult(rowDataLeft, AdditionResultType.BREAK_NOW);
+    }
+
+    public static AdditionResult newThisIterableDataLeft(List thisIterableDataLeft){
+        AdditionResult result = new AdditionResult(AdditionResultType.BREAK_NOW);
+
+        result.thisIterableDataLeft = thisIterableDataLeft;
+
+        return result;
+    }
+
+    private AdditionResult(RowData rowDataLeft, AdditionResultType type) {
+        this.rowDataLeft = rowDataLeft;
+        this.type = type;
+    }
+
+    public boolean isForTable(){
+        return thisIterableDataLeft != null;
+    }
 }
