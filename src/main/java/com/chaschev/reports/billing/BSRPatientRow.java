@@ -15,9 +15,11 @@ public class BSRPatientRow implements Comparable<BSRPatientRow>{
     public String price2;
     public int count = 1;
 
-    public BSRPatientRow(long id, String name) {
+    public BSRPatientRow(long id, String name, String price1, String price2) {
         this.id = id;
         this.name = name;
+        this.price1 = price1;
+        this.price2 = price2;
     }
 
     @Override

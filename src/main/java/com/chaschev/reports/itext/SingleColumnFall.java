@@ -53,13 +53,8 @@ public class SingleColumnFall<DATA> extends ColumnFall<DATA, SingleColumnFall>{
         return OK;
     }
 
-    public AdditionResult setYLine(float yLine) {
-        if(yLine < lly){
-            return OVERFLOW;
-        }
+    public void setYLine(float yLine) {
         singleColumn.setYLine(yLine);
-
-        return OK;
     }
 
     @Override
@@ -90,6 +85,14 @@ public class SingleColumnFall<DATA> extends ColumnFall<DATA, SingleColumnFall>{
 
     public AdditionResult addTextObjects(boolean simulate, Object... texts) {
         try {
+            //todo move this into funtions compositions
+            for (int i = 0; i < texts.length; i++) {
+                Object text = texts[i];
+                if (!(text instanceof Chunk || text instanceof Phrase)) {
+                    texts[i] = new Chunk(String.valueOf(text));
+                }
+            }
+
             for (Object text : texts) {
                 if (text instanceof Phrase) {
                     singleColumn.addText((Phrase) text);

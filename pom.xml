@@ -7,6 +7,13 @@
     <version>1.0-SNAPSHOT</version>
     <name>easy-reports</name>
     <url>http://maven.apache.org</url>
+
+    <scm>
+        <connection>scm:git:git://github.com/chaschev/easy-reports.git</connection>
+        <developerConnection>http:https://github.com/chaschev/easy-reports.git</developerConnection>
+        <url>https://github.com/chaschev/easy-reports</url>
+    </scm>
+
     <dependencies>
         <dependency>
             <groupId>com.itextpdf</groupId>
@@ -26,4 +33,27 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>2.2.2</version>
+                <configuration>
+                    <arguments>-Dgpg.passphrase=</arguments>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.1</version>
+                <configuration>
+                    <source>1.6</source>
+                    <target>1.6</target>
+                </configuration>
+            </plugin>
+        </plugins>
+
+    </build>
 </project>

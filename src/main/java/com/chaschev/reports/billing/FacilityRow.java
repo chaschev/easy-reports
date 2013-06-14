@@ -1,5 +1,6 @@
 package com.chaschev.reports.billing;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -30,6 +31,18 @@ public class FacilityRow{
         }
 
         return r;
+    }
+
+    public String getFacilityName() {
+        return facilityName;
+    }
+
+    public double getTotalSum() {
+        return totalSum;
+    }
+
+    public Collection<BSRBillingRow> getBillingRows() {
+        return codeToRow.values();
     }
 
     @Override

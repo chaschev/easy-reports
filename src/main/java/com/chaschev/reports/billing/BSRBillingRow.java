@@ -22,7 +22,7 @@ public class BSRBillingRow {
         this.price = price;
     }
 
-    public void addPatient(long id, String fullname){
+    public void addPatient(long id, String fullname, String price1, String price2){
         for (BSRPatientRow row : rows) {
             if(row.id == id){
                 row.count++;
@@ -30,7 +30,7 @@ public class BSRBillingRow {
             }
         }
 
-        rows.add(new BSRPatientRow(id, fullname));
+        rows.add(new BSRPatientRow(id, fullname, price1, price2));
 
         Collections.sort(rows);
     }

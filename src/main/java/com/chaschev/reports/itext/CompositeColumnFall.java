@@ -52,16 +52,26 @@ public class CompositeColumnFall<DATA> extends ColumnFall<DATA, CompositeColumnF
     }
 
     @Override
+    public void setYLine(float y) {
+        this.yLine = y;
+    }
+
+    @Override
     public AdditionResult applyAdder(boolean simulate, DATA data, boolean allowBreak) {
-        List list = childrenProjector.apply(data);
+        //place where it decides to iterate over the data
+        if(data instanceof Iterable){
+            return addIterable((Iterable) data, allowBreak);
+        }else{
+            List list = childrenProjector.apply(data);
 
-        AdditionResult result = filler.apply(simulate, this, children, list);
+            AdditionResult result = filler.apply(simulate, this, children, list);
 
-        for (ColumnFall child : children) {
-            yLine = Math.min(yLine, child.getYLine());
+            for (ColumnFall child : children) {
+                yLine = Math.min(yLine, child.getYLine());
+            }
+
+            return result;
         }
-
-        return result;
     }
 
     @Override
@@ -87,14 +97,16 @@ public class CompositeColumnFall<DATA> extends ColumnFall<DATA, CompositeColumnF
             yLine = ury;
         }
 
+        calcChildrenPositions();
+
         onNewPage();
     }
 
     @Override
-    public void addContent(Iterable<DATA> datas, boolean allowBreak) {
+    public AdditionResult addIterable(Iterable<DATA> datas, boolean allowBreak) {
         filler.allowBreak = allowBreak;
 
-        super.addContent(datas, allowBreak);
+        return super.addIterable(datas, allowBreak);
     }
 
     protected void onNewPage() {
@@ -102,10 +114,10 @@ public class CompositeColumnFall<DATA> extends ColumnFall<DATA, CompositeColumnF
     }
 
     public CompositeColumnFall<DATA> addChild(ColumnFall columnFall) {
-        Preconditions.checkNotNull(childrenWidths);
+        Preconditions.checkNotNull(childrenRelativeWidths);
 
         if (children == null) {
-            children = new ColumnFall[childrenWidths.length - 1];
+            children = new ColumnFall[childrenRelativeWidths.length];
         }
 
         int childIndex = 0;
@@ -123,10 +135,17 @@ public class CompositeColumnFall<DATA> extends ColumnFall<DATA, CompositeColumnF
     }
 
     CompositeColumnFall<DATA> calcChildrenPositions() {
+        calcChildrenWidthsFromRelatives();
+
         for (int i = 0; i < children.length; i++) {
             ColumnFall child = children[i];
-            child.setRectangle(childrenWidths[i], lly, childrenWidths[i + 1], ury);
-            child.setRectangle(childrenWidths[i], lly, childrenWidths[i + 1], ury);
+
+            child.setRectangle(childrenXPositions[i], lly, childrenXPositions[i + 1], ury);
+            child.setYLine(ury);
+
+            if (child instanceof CompositeColumnFall) {
+                ((CompositeColumnFall) child).calcChildrenPositions();
+            }
         }
 
         return this;

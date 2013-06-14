@@ -1,11 +1,7 @@
 package com.chaschev.reports.itext;
 
-import com.chaschev.reports.billing.BSRBillingRow;
-import com.chaschev.reports.billing.BSRPatientRow;
-import com.chaschev.reports.billing.FacilityRow;
-import com.chaschev.reports.billing.PhysicianRow;
+import com.chaschev.reports.billing.*;
 import com.google.common.base.Function;
-import com.itextpdf.text.Chunk;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.PageSize;
 import com.itextpdf.text.pdf.PdfContentByte;
@@ -13,8 +9,6 @@ import com.itextpdf.text.pdf.PdfWriter;
 
 import java.io.FileOutputStream;
 import java.util.List;
-
-import static java.lang.String.valueOf;
 
 /**
  * User: chaschev
@@ -27,6 +21,7 @@ abstract class AbstractList extends java.util.AbstractList{
         throw new UnsupportedOperationException("AbstractList.size");
     }
 }
+
 public class Example1 {
     public static void main(String[] args) throws Exception {
         Document document = new Document(PageSize.A4);
@@ -38,28 +33,12 @@ public class Example1 {
         CompositeColumnFall<BSRPatientRow> patientTableFall = new CompositeColumnFall<BSRPatientRow>();
 
         patientTableFall
-            .setRectangle(0, 0, 700, 842)
+//            .setRectangle(0, 0, 700, 842)
             .setRelativeWidths(60, 20, 20);
 
         patientTableFall.document = document;
 
-        patientTableFall.setChildrenProjector(new Function<BSRPatientRow, List>() {
-            @Override
-            public List apply(final BSRPatientRow row) {
-                return new AbstractList() {
-                    @Override
-                    public Object get(int index) {
-                        switch (index){
-                            case 0: return new Object[]{new Chunk(row.name)};
-                            case 1: return new Object[]{new Chunk(valueOf(row.count))};
-                            case 2: return new Object[]{new Chunk(valueOf(row.count * 2))};
-
-                            default: return null;
-                        }
-                    }
-                };
-            }
-        });
+        patientTableFall.setChildrenProjector(new FieldProjector<BSRPatientRow>(BSRPatientRow.class, "name", "price1", "price2"));
 
         patientTableFall
             .addChild(new SingleColumnFall<String>(canvas))
@@ -67,13 +46,47 @@ public class Example1 {
             .addChild(new SingleColumnFall<String>(canvas))
             .calcChildrenPositions();
 
+        CompositeColumnFall<BSRBillingRow> billingCodeFall = new CompositeColumnFall<BSRBillingRow>();
+
+        billingCodeFall
+            .setRectangle(0, 0, 700, 842)
+            .setRelativeWidths(10, 90);
+
+        billingCodeFall.document = document;
+
+        billingCodeFall.setChildrenProjector(new Function<BSRBillingRow, List>() {
+            @Override
+            public List apply(final BSRBillingRow bRow) {
+                return new AbstractList() {
+                    @Override
+                    public Object get(int index) {
+                        switch (index){
+                            case 0: return new Object[]{bRow.code};
+                            case 1: return bRow.rows;
+                            default: return null;
+                        }
+                    }
+                };
+            }
+        }); //new FieldProjector<BSRBillingRow>(BSRBillingRow.class, "code", "rows")
+
+        billingCodeFall
+            .addChild(new SingleColumnFall<StringBuffer>(canvas))
+            .addChild(patientTableFall)
+            .calcChildrenPositions();
+
+
+        ///////////// DATA INIT ///////////////
+
         PhysicianRow physicianRow1 = new PhysicianRow("Phys 1");
 
         facRow1(physicianRow1, 1000, "Facility 1");
 
         List<BSRPatientRow> rows = physicianRow1.get("Facility 1").codeToRow.get(10002).rows;
 
-        patientTableFall.addContent(rows, true);
+//        patientTableFall.addIterable(rows, true);
+
+        billingCodeFall.addIterable(physicianRow1.get("Facility 1").codeToRow.values(), true);
 
         document.close();
 
@@ -141,82 +154,18 @@ public class Example1 {
     private static void billingRow1(FacilityRow facRow1, int cptCode, int price) {
         BSRBillingRow billingRow = facRow1.get(cptCode, price);
 
-        int i = 4;
-
         addPatient(billingRow, 1, "Patient Pat1");
         addPatient(billingRow, 2, "Patient Pat2");
-        addPatient(billingRow, 2, "Patient Pat2");
-        addPatient(billingRow, 3, "Patient Pat3");
-        addPatient(billingRow, 3, "Patient Pat3");
-
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
-        addPatient(billingRow, i++, "Patient Pat" + i);
+//        addPatient(billingRow, 2, "Patient Pat2");
+//        addPatient(billingRow, 3, "Patient Pat3");
+//        addPatient(billingRow, 3, "Patient Pat3");
+//
+        for(int i = 4;i<60;i++){
+            addPatient(billingRow, i, "Patient Pat" + i);
+        }
     }
 
     private static void addPatient(BSRBillingRow billingRow, int id, String patientName1) {
-        billingRow.addPatient(id, patientName1);
+        billingRow.addPatient(id, patientName1, "$" + id, "$" + id * 2);
     }
 }

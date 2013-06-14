@@ -49,7 +49,7 @@ public class Filler{
         if (result != OK) {
             //this should start a new page
             columnFall.handlePageBreak();
-            columnFall.calcChildrenPositions();
+
             result = applyBreakable(simulate, columnFall, children, childrenData);
         }else{
             result = tryAddRow(false, children, childrenData, yBefore, result);
