@@ -1,7 +1,5 @@
 package com.chaschev.reports.itext;
 
-import com.chaschev.reports.billing.RowData;
-
 /**
 * User: chaschev
 * Date: 6/12/13

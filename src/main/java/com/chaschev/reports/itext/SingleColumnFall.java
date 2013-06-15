@@ -1,7 +1,5 @@
 package com.chaschev.reports.itext;
 
-import com.chaschev.reports.billing.RowData;
-import com.chaschev.reports.billing.Utils;
 import com.itextpdf.text.Chunk;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Phrase;

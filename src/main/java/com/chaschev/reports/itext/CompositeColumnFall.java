@@ -1,7 +1,5 @@
 package com.chaschev.reports.itext;
 
-import com.chaschev.reports.billing.RowData;
-import com.chaschev.reports.billing.Utils;
 import com.google.common.base.Preconditions;
 
 import java.util.Arrays;
@@ -138,7 +136,8 @@ public class CompositeColumnFall<DATA, T extends CompositeColumnFall> extends Co
         return this;
     }
 
-    CompositeColumnFall<DATA, T> calcChildrenPositions() {
+    //todo hide
+    public CompositeColumnFall<DATA, T> calcChildrenPositions() {
         calcChildrenWidthsFromRelatives();
 
         for (int i = 0; i < children.length; i++) {

@@ -1,4 +1,4 @@
-package com.chaschev.reports.billing;
+package com.chaschev.reports.itext;
 
 /**
  * User: chaschev

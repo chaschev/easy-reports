@@ -45,7 +45,10 @@ class SavePoint{
 }
 
 public abstract class ColumnFall<DATA, T extends ColumnFall> {
-    transient protected Document document;
+    private static final float NOT_SET_VALUE = -999999919;
+
+    //todo hide
+    public transient Document document;
 
     private transient float backup_llx;
     private transient float backup_lly;
@@ -58,7 +61,7 @@ public abstract class ColumnFall<DATA, T extends ColumnFall> {
         this.name = name;
     }
 
-    float llx;
+    float llx = NOT_SET_VALUE;
     float lly;
     float urx;
     float ury;
@@ -142,5 +145,9 @@ public abstract class ColumnFall<DATA, T extends ColumnFall> {
         }
 
         return (T) this;
+    }
+
+    public boolean isRectangleSet(){
+        return llx != NOT_SET_VALUE;
     }
 }

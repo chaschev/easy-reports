@@ -1,6 +1,5 @@
 package com.chaschev.reports.itext;
 
-import com.chaschev.reports.billing.Utils;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
@@ -35,7 +34,7 @@ public class IterableCompositeColumnFall<DATA> extends CompositeColumnFall<Itera
     protected ColumnFall<DATA, ? extends ColumnFall> rowColumnFall;
 
 
-    protected IterableCompositeColumnFall(String name) {
+    public IterableCompositeColumnFall(String name) {
         super(name);
 
         this.childrenProjector = CompositeColumnFall.IDENTITY_PROJECTOR;
@@ -157,6 +156,7 @@ public class IterableCompositeColumnFall<DATA> extends CompositeColumnFall<Itera
 
     public IterableCompositeColumnFall<DATA> setRowFall(ColumnFall<DATA, ? extends ColumnFall> rowColumnFall) {
         setRelativeWidths(1);
+        setChildrenProjector(CompositeColumnFall.IDENTITY_PROJECTOR);
         this.rowColumnFall = rowColumnFall;
         addChild(rowColumnFall);
         return this;

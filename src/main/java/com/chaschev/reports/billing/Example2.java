@@ -1,95 +1,47 @@
-package com.chaschev.reports.itext;
+package com.chaschev.reports.billing;
 
-import com.chaschev.reports.billing.*;
-import com.itextpdf.text.Document;
+import com.chaschev.reports.itext.*;
 import com.itextpdf.text.PageSize;
-import com.itextpdf.text.pdf.PdfContentByte;
-import com.itextpdf.text.pdf.PdfWriter;
 
 import java.io.FileOutputStream;
 
-/**
- * User: chaschev
- * Date: 6/12/13
- */
-
-abstract class AbstractList extends java.util.AbstractList{
-    int size;
-
-    protected AbstractList(int size) {
-        this.size = size;
-    }
-
-    @Override
-    public int size() {
-        throw new UnsupportedOperationException("AbstractList.size");
-    }
-}
-
-public class Example1 {
+public class Example2 {
 
     public static void main(String[] args) throws Exception {
-        Document document = new Document(PageSize.A4);
-        PdfWriter writer = PdfWriter.getInstance(document, new FileOutputStream("e:/test.pdf"));
-        document.open();
+        ReportBuilder b = ReportBuilder.newReportBuilder(
+            new FileOutputStream("e:/test.pdf"), PageSize.A4
+        );
 
-        PdfContentByte canvas = writer.getDirectContent();
+        //todo b. can be avoided
+        IterableCompositeColumnFall<BSRBillingRow> billingCodeTable = b
+            .newTableBuilder(BSRBillingRow.class, "codeTable")
+            .rectangle(0, 0, 690, 842)       //todo this should be moved into a root builder
+            .rows(
+                b.newCompositeBuilder(BSRBillingRow.class, "codeTableRow")
+                    .setRelativeWidths(10, 90)
+                    .setChildrenProjector(new CompositeColumnFall.Projector<BSRBillingRow>() {
+                        @Override
+                        public RowData<BSRBillingRow> apply(final BSRBillingRow bRow) {
+                            return new RowData<BSRBillingRow>(new Object[]{bRow.code}, bRow.rows);
+                        }
+                    })
+                    .addChildren(
+                        b.newSingle("code"),
+                        b.newTableBuilder(BSRPatientRow.class, "patientTable")
+                            .rows(
+                                b.newCompositeBuilder(BSRPatientRow.class, "patientTableRow")
+                                    .setRelativeWidths(60, 20, 20)
+                                    .setChildrenProjector(new FieldProjector<BSRPatientRow>(BSRPatientRow.class, "name", "price1", "price2"))
+                                    .addChildren(
+                                        b.newSingle("name"),
+                                        b.newSingle("price1"),
+                                        b.newSingle("price2")
+                                    )
+                                    .build()
+                            ).build()
+                    ).build()
+            ).build();
 
-        CompositeColumnFall<BSRPatientRow, CompositeColumnFall> patientTableRowFall = new CompositeColumnFall<BSRPatientRow, CompositeColumnFall>("patientTable");
-
-        patientTableRowFall
-//            .setRectangle(0, 0, 700, 842)
-            .setRelativeWidths(60, 20, 20);
-
-        patientTableRowFall.document = document;
-
-        patientTableRowFall.setChildrenProjector(new FieldProjector<BSRPatientRow>(BSRPatientRow.class, "name", "price1", "price2"));
-
-        patientTableRowFall
-            .addChild(new SingleColumnFall<String>("name", canvas))
-            .addChild(new SingleColumnFall<String>("price1", canvas))
-            .addChild(new SingleColumnFall<String>("price2", canvas))
-            .calcChildrenPositions();
-
-        IterableCompositeColumnFall<BSRPatientRow> patientTableFall = new IterableCompositeColumnFall<BSRPatientRow>("BSRPatientRow")
-            .setRectangle(0, 0, 700, 842);
-
-        patientTableFall
-            .setRelativeWidths(1)
-            .setRowFall(patientTableRowFall);
-//            .calcChildrenPositions();
-
-        CompositeColumnFall<BSRBillingRow, CompositeColumnFall> billingCodeRowFall = new CompositeColumnFall<BSRBillingRow, CompositeColumnFall>("codeRow");
-
-        billingCodeRowFall
-            .setRelativeWidths(10, 90);
-
-        billingCodeRowFall.document = document;
-
-        billingCodeRowFall.setChildrenProjector(new CompositeColumnFall.Projector<BSRBillingRow>() {
-            @Override
-            public RowData<BSRBillingRow> apply(final BSRBillingRow bRow) {
-                return new RowData<BSRBillingRow>(new Object[]{bRow.code}, bRow.rows);
-            }
-        }); //new FieldProjector<BSRBillingRow>(BSRBillingRow.class, "code", "rows")
-
-        billingCodeRowFall
-            .addChild(new SingleColumnFall<StringBuffer>("code", canvas))
-            .addChild(patientTableFall);
-
-        billingCodeRowFall.document = document;
-
-        IterableCompositeColumnFall<BSRBillingRow> billingCodeTable = new IterableCompositeColumnFall<BSRBillingRow>("codeTable")
-            .setRectangle(0, 0, 690, 842);
-
-        billingCodeTable.document = document;
-
-        billingCodeTable
-
-            .setRowFall(billingCodeRowFall)
-            .setChildrenProjector(CompositeColumnFall.IDENTITY_PROJECTOR)
-//            .addChild(billingCodeRowFall)
-            .calcChildrenPositions();
 
         ///////////// DATA INIT ///////////////
 
@@ -107,7 +59,7 @@ public class Example1 {
 
         billingCodeTable.applyAdder(false, physicianRow1.get("Facility 1").codeToRow.values(), true, false);
 
-        document.close();
+        b.close();
 
 
         //
@@ -118,7 +70,7 @@ public class Example1 {
         // | |  |                | patient 4 | sum1 | sum2
         // | |  | billing_code 2 | patient 2 | sum3 | sum4
         // | | facility 2 [(cont.)]|
-        // | |  | billing_code 1 | patient 1 | sum1 | sum2
+        // | |  | billing_code 1  [(cont.)] | patient 1 | sum1 | sum2
         // | |  |                | patient 6 | sum1 | sum2
         // | |  | billing_code 2 | patient 5 | sum3 | sum4
         // | |  | billing_code 3 | patient 3 | sum3 | sum4

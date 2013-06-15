@@ -1,6 +1,5 @@
-package com.chaschev.reports.billing;
+package com.chaschev.reports.itext;
 
-import com.chaschev.reports.itext.CompositeColumnFall;
 import com.itextpdf.text.Chunk;
 
 import java.lang.reflect.Field;
