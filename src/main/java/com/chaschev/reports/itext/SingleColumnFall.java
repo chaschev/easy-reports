@@ -1,6 +1,7 @@
 package com.chaschev.reports.itext;
 
 import com.itextpdf.text.Chunk;
+import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Phrase;
 import com.itextpdf.text.pdf.ColumnText;
@@ -19,8 +20,8 @@ public class SingleColumnFall<DATA> extends ColumnFall<DATA, SingleColumnFall>{
     ColumnText singleColumn;
     ColumnText backup;
 
-    public SingleColumnFall(String name, PdfContentByte canvas){
-        super(name);
+    public SingleColumnFall(String name, Document document, PdfContentByte canvas){
+        super(name, document);
         singleColumn = new ColumnText(canvas);
         backup = new ColumnText(canvas);
     }
@@ -91,7 +92,10 @@ public class SingleColumnFall<DATA> extends ColumnFall<DATA, SingleColumnFall>{
     }
 
     public AdditionResult addTextObjects(boolean simulate, Object[] texts) {
-        Utils.print("[%s]: simple, sim: %s, objs: %s%n", name, simulate, Arrays.toString(texts));
+        Utils.print("[%s]: simple, sim: %s, coord: %.1f, %.1f, objs: %s%n", name, simulate,
+            singleColumn.getLastX(),
+            singleColumn.getYLine(),
+            Arrays.toString(texts));
         try {
             //todo move this into functions compositions
             for (int i = 0; i < texts.length; i++) {

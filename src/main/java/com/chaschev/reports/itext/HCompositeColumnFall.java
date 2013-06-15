@@ -1,6 +1,7 @@
 package com.chaschev.reports.itext;
 
 import com.google.common.base.Preconditions;
+import com.itextpdf.text.Document;
 
 import java.util.Arrays;
 
@@ -31,22 +32,10 @@ public class HCompositeColumnFall<DATA, T extends HCompositeColumnFall> extends 
 
     protected RowFiller rowFiller = new RowFiller();
 
-    public static abstract class Projector<F>{
-        public RowData project(Object obj){
-            if (obj instanceof RowData) {
-                return (RowData) obj;
-            }
-
-            return apply((F) obj);
-        }
-
-        protected abstract RowData apply(F obj);
-    }
-
     Projector<DATA> childrenProjector;
 
-    public HCompositeColumnFall(String name) {
-        super(name);
+    public HCompositeColumnFall(String name, Document document) {
+        super(name, document);
     }
 
     @Override
@@ -68,6 +57,9 @@ public class HCompositeColumnFall<DATA, T extends HCompositeColumnFall> extends 
     @Override
     public void setYLine(float y) {
         this.yLine = y;
+        for (ColumnFall child : children) {
+            child.setYLine(y);
+        }
     }
 
     @Override

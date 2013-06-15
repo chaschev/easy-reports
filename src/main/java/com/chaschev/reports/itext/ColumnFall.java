@@ -58,8 +58,9 @@ public abstract class ColumnFall<DATA, T extends ColumnFall> {
 
     protected String name;
 
-    protected ColumnFall(String name) {
+    protected ColumnFall(String name, Document document) {
         this.name = name;
+        this.document = document;
     }
 
     float llx = NOT_SET_VALUE;
@@ -122,6 +123,10 @@ public abstract class ColumnFall<DATA, T extends ColumnFall> {
     }
 
     public T initPositions() {
+        if(!isRectangleSet()){
+            return (T) this;
+        }
+
         //logic for a single child
         setYLine(ury);
         if (children != null) {

@@ -46,44 +46,48 @@ public class ReportBuilder {
     }
 
     public SingleColumnFall newSingle(String name) {
-        return new SingleColumnFall(name, canvas);
+        return new SingleColumnFall(name, document, canvas);
+    }
+
+    public <DATA> VerticalBuilder<DATA> newVCompositeBuilder(Class<DATA> aClass, String name){
+        return new VerticalBuilder<DATA>(aClass, name, this);
     }
 
     public static class CompositeBuilder<DATA>{
-        HCompositeColumnFall<DATA, HCompositeColumnFall> HCompositeColumnFall;
+        HCompositeColumnFall<DATA, HCompositeColumnFall> hCompositeColumnFall;
 
         public CompositeBuilder(Class<DATA> aClass, String name, ReportBuilder reportBuilder) {
-            HCompositeColumnFall = new HCompositeColumnFall<DATA, HCompositeColumnFall>(name);
-            HCompositeColumnFall.document = reportBuilder.document;
+            hCompositeColumnFall = new HCompositeColumnFall<DATA, HCompositeColumnFall>(name, reportBuilder.document);
+            hCompositeColumnFall.document = reportBuilder.document;
         }
 
         public CompositeBuilder<DATA> setRelativeWidths(float... values) {
-            HCompositeColumnFall.setRelativeWidths(values);
+            hCompositeColumnFall.setRelativeWidths(values);
             return this;
         }
 
-        public CompositeBuilder<DATA> setChildrenProjector(HCompositeColumnFall.Projector<DATA> childrenProjector) {
-            HCompositeColumnFall.setChildrenProjector(childrenProjector);
+        public CompositeBuilder<DATA> setChildrenProjector(Projector<DATA> childrenProjector) {
+            hCompositeColumnFall.setChildrenProjector(childrenProjector);
             return this;
         }
 
         public CompositeBuilder<DATA> addChildren(ColumnFall... children) {
             for (ColumnFall child : children) {
-                HCompositeColumnFall.addChild(child);
+                hCompositeColumnFall.addChild(child);
             }
             return this;
         }
 
         public ColumnFall<DATA, ? extends ColumnFall> build() {
-            return HCompositeColumnFall;
+            return hCompositeColumnFall;
         }
     }
 
     public static class TableBuilder<DATA>{
-        IterableCompositeColumnFall<DATA> tableColumnFall;
+        TableCompositeColumnFall<DATA> tableColumnFall;
 
         public TableBuilder(Class<DATA> aClass, String name, ReportBuilder reportBuilder) {
-            tableColumnFall = new IterableCompositeColumnFall<DATA>(name);
+            tableColumnFall = new TableCompositeColumnFall<DATA>(name, reportBuilder.document);
             tableColumnFall.document = reportBuilder.document;
         }
 
@@ -97,11 +101,46 @@ public class ReportBuilder {
             return this;
         }
 
-        public IterableCompositeColumnFall<DATA> build() {
-            if(tableColumnFall.isRectangleSet()){
-                tableColumnFall.initPositions();
-            }
+        public TableCompositeColumnFall<DATA> build() {
+            tableColumnFall.initPositions();
             return tableColumnFall;
+        }
+    }
+
+    public static class VerticalBuilder<DATA>{
+        VerticalCompositeColumnFall<DATA> verticalFall;
+
+        public VerticalBuilder(Class<DATA> aClass, String name, ReportBuilder reportBuilder) {
+            verticalFall = new VerticalCompositeColumnFall<DATA>(name, reportBuilder.document);
+        }
+
+        public VerticalBuilder<DATA> setChildren(ColumnFall... columnFall) {
+            verticalFall.setChildren(columnFall);
+            return this;
+        }
+
+        public VerticalBuilder<DATA> setChildrenProjector(Projector<DATA> childrenProjector) {
+            verticalFall.setChildrenProjector(childrenProjector);
+            return this;
+        }
+
+        public VerticalBuilder<DATA> rectangle(float llx, float lly, float urx, float ury) {
+            verticalFall.setRectangle(llx, lly, urx, ury);
+            return this;
+        }
+
+        public VerticalCompositeColumnFall<DATA> build() {
+            if(verticalFall.childrenProjector == null){
+                throw new IllegalStateException("projector must be set for " + verticalFall.name);
+            }
+
+            if(verticalFall.children == null){
+                throw new IllegalStateException("children must be set for " + verticalFall.name);
+            }
+
+            verticalFall.initPositions();
+
+            return verticalFall;
         }
     }
 

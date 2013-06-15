@@ -13,13 +13,13 @@ public class Example2 {
         );
 
         //todo b. can be avoided
-        IterableCompositeColumnFall<BSRBillingRow> billingCodeTable = b
+        TableCompositeColumnFall<BSRBillingRow> billingCodeTable = b
             .newTableBuilder(BSRBillingRow.class, "codeTable")
             .rectangle(0, 0, 690, 842)       //todo this should be moved into a root builder
             .rows(
                 b.newCompositeBuilder(BSRBillingRow.class, "codeTableRow")
                     .setRelativeWidths(10, 90)
-                    .setChildrenProjector(new HCompositeColumnFall.Projector<BSRBillingRow>() {
+                    .setChildrenProjector(new Projector<BSRBillingRow>() {
                         @Override
                         public RowData<BSRBillingRow> apply(final BSRBillingRow bRow) {
                             return new RowData<BSRBillingRow>(new Object[]{bRow.code}, bRow.rows);

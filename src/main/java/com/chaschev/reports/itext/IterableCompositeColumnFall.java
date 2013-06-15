@@ -2,6 +2,7 @@ package com.chaschev.reports.itext;
 
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.itextpdf.text.Document;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -28,10 +29,10 @@ import static com.chaschev.reports.itext.AdditionResultType.*;
  * patient table,
  * table of (code, patient table)
  */
-public class IterableCompositeColumnFall<DATA> extends ColumnFall<Iterable<DATA>, IterableCompositeColumnFall<DATA>> {
+public abstract class IterableCompositeColumnFall<DATA, ROW_DATA> extends ColumnFall<DATA, IterableCompositeColumnFall<DATA, ROW_DATA>> {
     protected int breakCount;
 
-    protected ColumnFall<DATA, ? extends ColumnFall> rowColumnFall;
+    protected ColumnFall<ROW_DATA, ? extends ColumnFall> rowColumnFall;
 
     //mode 1
 //    protected Function<DATA, Iterable> dataToRows;
@@ -42,23 +43,29 @@ public class IterableCompositeColumnFall<DATA> extends ColumnFall<Iterable<DATA>
 
     protected float yLine = Float.MAX_VALUE / 4;
 
-    public IterableCompositeColumnFall(String name) {
-        super(name);
+    int backup_rowIndex;
+    int rowIndex = -1;
 
-//        this.childrenProjector = CompositeColumnFall.IDENTITY_PROJECTOR;
+    Object rowValue;
+    Object backup_rowValue ;
+
+    IterableCompositeColumnFall(String name, Document document) {
+        super(name, document);
     }
 
-    @Override
-    public AdditionResult applyAdder(boolean simulate, Iterable<DATA> datas, boolean allowBreak, boolean afterPageBreak) {
-        return addIterable(simulate, datas, allowBreak);
-    }
-
-    protected AdditionResult addIterable(boolean simulate, Iterable<DATA> datas, boolean allowBreak, boolean afterPageBreak){
+    protected AdditionResult addIterableUntilPageBreak(boolean simulate, Iterable<ROW_DATA> datas, boolean allowBreak, boolean afterPageBreak){
         if(allowBreak){
-            for (Iterator<DATA> iterator = datas.iterator(); iterator.hasNext(); ) {
-                DATA data = iterator.next();
+            for (Iterator<ROW_DATA> iterator = datas.iterator(); iterator.hasNext(); ) {
+                ROW_DATA data = iterator.next();
 
-                AdditionResult result = rowColumnFall.applyAdder(simulate, data, true, afterPageBreak);
+                rowValue = data;
+                rowIndex++;
+
+                ColumnFall<ROW_DATA, ? extends ColumnFall> currentRowFall = currentRowFall();
+
+                AdditionResult result = currentRowFall.applyAdder(simulate, data, true, afterPageBreak);
+
+                yLine = currentRowFall.getYLine();
 
                 //can't be overflow here, ok?
                 if (result.type == BREAK_NOW || result.type == OVERFLOW) {
@@ -82,10 +89,10 @@ public class IterableCompositeColumnFall<DATA> extends ColumnFall<Iterable<DATA>
 
             return AdditionResult.OK;
         }else{
-            for (DATA data : datas) {
+            for (Object data : datas) {
                 backup();
 
-                AdditionResult result = rowColumnFall.applyAdder(true, data, false, afterPageBreak);
+                AdditionResult result = rowColumnFall.applyAdder(true, (ROW_DATA) data, false, afterPageBreak);
 
                 if(result == AdditionResult.OVERFLOW){
                     //todo this is wrong. Any break must be escalated.
@@ -99,7 +106,7 @@ public class IterableCompositeColumnFall<DATA> extends ColumnFall<Iterable<DATA>
                 rollback();
 
                 if(!simulate){
-                    result = rowColumnFall.applyAdder(false, data, false, afterPageBreak);
+                    result = currentRowFall().applyAdder(false, (ROW_DATA) data, false, afterPageBreak);
                 }
 
                 if(result.type == BREAK_NOW){
@@ -116,14 +123,18 @@ public class IterableCompositeColumnFall<DATA> extends ColumnFall<Iterable<DATA>
 
     }
 
-    private AdditionResult addIterable(boolean simulate, Iterable<DATA> data, boolean allowBreak) {
+    protected ColumnFall<ROW_DATA, ? extends ColumnFall> currentRowFall() {
+        return rowColumnFall;
+    }
+
+    protected AdditionResult addIterable(boolean simulate, Iterable<ROW_DATA> data, boolean allowBreak, boolean afterPageBreak) {
 //        rowFiller.allowBreak = allowBreak;
 
-        AdditionResult result = addIterable(simulate, data, allowBreak, false);
+        AdditionResult result = addIterableUntilPageBreak(simulate, data, allowBreak, afterPageBreak);
 
         while (parent == null && result.type == BREAK_NOW){
             handlePageBreak();
-            result = addIterable(simulate, result.thisIterableDataLeft, allowBreak, true);
+            result = addIterableUntilPageBreak(simulate, result.thisIterableDataLeft, allowBreak, true);
         }
 
         return result;
@@ -138,29 +149,34 @@ public class IterableCompositeColumnFall<DATA> extends ColumnFall<Iterable<DATA>
 
     @Override
     public void setYLine(float y) {
-        rowColumnFall.setYLine(y);
+        yLine = y;
+        currentRowFall().setYLine(y);
     }
 
     @Override
     public float getYLine() {
-        return rowColumnFall.getYLine();
+        return yLine;
     }
 
     @Override
     protected void backupMe() {
-        rowColumnFall.backup();
+        currentRowFall().backup();
+        backup_rowIndex = rowIndex;
+        backup_rowValue = rowValue;
     }
 
     @Override
     protected void rollbackMe() {
-        rowColumnFall.rollback();
+        currentRowFall().rollback();
+        rowIndex = backup_rowIndex;
+        rowValue = backup_rowValue;
     }
 
-    public IterableCompositeColumnFall<DATA> setRowFall(ColumnFall<DATA, ? extends ColumnFall> rowColumnFall) {
+    public IterableCompositeColumnFall<ROW_DATA, DATA> setRowFall(ColumnFall<ROW_DATA, ? extends ColumnFall> rowColumnFall) {
 //        setChildrenProjector(CompositeColumnFall.IDENTITY_PROJECTOR);
         this.rowColumnFall = rowColumnFall;
         this.children = new ColumnFall[]{rowColumnFall};
 //        addChild(rowColumnFall);
-        return this;
+        return (IterableCompositeColumnFall<ROW_DATA, DATA>) this;
     }
 }

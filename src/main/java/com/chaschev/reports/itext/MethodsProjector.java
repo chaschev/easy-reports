@@ -1,18 +1,13 @@
 package com.chaschev.reports.itext;
 
-import com.google.common.base.Function;
-import com.itextpdf.text.Chunk;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * User: chaschev
  * Date: 6/14/13
  */
-public class MethodsProjector<T> implements Function<T, List> {
+public class MethodsProjector<T> extends Projector<T> {
     protected Method[] methods;
 
     public MethodsProjector(Class<T> aClass, String... methodNames) {
@@ -32,14 +27,14 @@ public class MethodsProjector<T> implements Function<T, List> {
         }
     }
 
-
-    public List apply(T obj) {
+    @Override
+    protected RowData apply(T obj) {
         try {
-            List result = new ArrayList(methods.length);
+            Object[] r = new Object[methods.length];
             for (int i = 0; i < methods.length; i++) {
-                result.add(new Object[]{new Chunk(String.valueOf(methods[i].invoke(obj)))});
+                r[i] = chunks(methods[i].invoke(obj));
             }
-            return result;
+            return new RowData(r);
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         } catch (InvocationTargetException e) {

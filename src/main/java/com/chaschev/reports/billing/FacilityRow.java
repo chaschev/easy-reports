@@ -21,6 +21,14 @@ public class FacilityRow{
         this.facilityName = facilityName;
     }
 
+    public Map<Integer, BSRBillingRow> getCodeToRow() {
+        return codeToRow;
+    }
+
+    public Collection<BSRBillingRow> rows() {
+        return codeToRow.values();
+    }
+
     public BSRBillingRow get(int cptCode, double price) {
         totalSum += price;
 
@@ -39,10 +47,6 @@ public class FacilityRow{
 
     public double getTotalSum() {
         return totalSum;
-    }
-
-    public Collection<BSRBillingRow> getBillingRows() {
-        return codeToRow.values();
     }
 
     @Override

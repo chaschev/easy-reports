@@ -1,5 +1,6 @@
 package com.chaschev.reports.billing;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -8,9 +9,18 @@ import java.util.Map;
  */
 public class BillingSummaryReportData {
     public String header;
-    public Map<Long, PhysicianRow> physicianRowMap;
+    public Map<Long, PhysicianRow> physicianRowMap = new LinkedHashMap<Long, PhysicianRow>();
 
-    public BillingSummaryReportData(Map<Long, PhysicianRow> physicianRowMap) {
-        this.physicianRowMap = physicianRowMap;
+    public BillingSummaryReportData() {
+    }
+
+    public PhysicianRow get(long id, String name){
+        PhysicianRow row = physicianRowMap.get(id);
+
+        if(row == null){
+            physicianRowMap.put(id, row = new PhysicianRow(name));
+        }
+
+        return row;
     }
 }

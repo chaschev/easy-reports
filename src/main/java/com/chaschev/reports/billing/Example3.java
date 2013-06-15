@@ -5,6 +5,9 @@ import com.itextpdf.text.PageSize;
 
 import java.io.FileOutputStream;
 
+//todo add fixed widths (10px, 10%)
+//todo b. can be avoided
+//todo rectangle can be moved into a root builder
 public class Example3 {
 
     public static void main(String[] args) throws Exception {
@@ -12,43 +15,72 @@ public class Example3 {
             new FileOutputStream("e:/test.pdf"), PageSize.A4
         );
 
-//        b.newCompositeBuilder(FacilityRow.class)
-        //todo add fixed widths (10px, 10%)
-        //todo b. can be avoided
-        IterableCompositeColumnFall<BSRBillingRow> billingCodeTable = b
-            .newTableBuilder(BSRBillingRow.class, "codeTable")
-            .rectangle(0, 0, 690, 842)       //todo this should be moved into a root builder
+
+        TableCompositeColumnFall<PhysicianRow> physRows = b.newTableBuilder(PhysicianRow.class, "physTable")
             .rows(
-                b.newCompositeBuilder(BSRBillingRow.class, "codeTableRow")
-                    .setRelativeWidths(3, 10, 80)
-                    .setChildrenProjector(new HCompositeColumnFall.Projector<BSRBillingRow>() {
+                b.newVCompositeBuilder(PhysicianRow.class, "physRow")
+                    .setChildrenProjector(new Projector<PhysicianRow>() {
                         @Override
-                        public RowData<BSRBillingRow> apply(final BSRBillingRow bRow) {
-                            return new RowData<BSRBillingRow>(new Object[]{}, new Object[]{bRow.code}, bRow.rows);
+                        protected RowData apply(PhysicianRow obj) {
+                            return new RowData(chunks(obj.name), obj.facToRow.values());
                         }
                     })
-                    .addChildren(
-                        b.newSingle("empty"),
-                        b.newSingle("code"),
-                        b.newTableBuilder(BSRPatientRow.class, "patientTable")
+                    .rectangle(0, 0, 680, 842)
+                    .setChildren(
+                        b.newSingle("physicianName"),
+                        b.newTableBuilder(FacilityRow.class, "facilityTable")
                             .rows(
-                                b.newCompositeBuilder(BSRPatientRow.class, "patientTableRow")
-                                    .setRelativeWidths(60, 20, 20)
-                                    .setChildrenProjector(new FieldProjector<BSRPatientRow>(BSRPatientRow.class, "name", "price1", "price2"))
-                                    .addChildren(
-                                        b.newSingle("name"),
-                                        b.newSingle("price1"),
-                                        b.newSingle("price2")
-                                    )
-                                    .build()
+                                b.newVCompositeBuilder(FacilityRow.class, "facilityRow")
+                                    .setChildrenProjector(new Projector<FacilityRow>() {
+                                        @Override
+                                        protected RowData apply(FacilityRow obj) {
+                                            return new RowData(
+                                                chunks(obj.facilityName),
+                                                obj.rows(),
+                                                chunks(obj.totalSum)
+                                            );
+                                        }
+                                    })
+                                    .setChildren(
+                                        b.newSingle("facilityName"),
+                                        b.newTableBuilder(BSRBillingRow.class, "codeTable")
+                                            .rows(
+                                                b.newCompositeBuilder(BSRBillingRow.class, "codeTableRow")
+                                                    .setRelativeWidths(3, 10, 80)
+                                                    .setChildrenProjector(new Projector<BSRBillingRow>() {
+                                                        @Override
+                                                        public RowData<BSRBillingRow> apply(final BSRBillingRow bRow) {
+                                                            return new RowData<BSRBillingRow>(new Object[]{}, new Object[]{bRow.code}, bRow.rows);
+                                                        }
+                                                    })
+                                                    .addChildren(
+                                                        b.newSingle("empty"),
+                                                        b.newSingle("code"),
+                                                        b.newTableBuilder(BSRPatientRow.class, "patientTable")
+                                                            .rows(
+                                                                b.newCompositeBuilder(BSRPatientRow.class, "patientTableRow")
+                                                                    .setRelativeWidths(60, 20, 20)
+                                                                    .setChildrenProjector(new FieldProjector<BSRPatientRow>(BSRPatientRow.class, "name", "price1", "price2"))
+                                                                    .addChildren(
+                                                                        b.newSingle("name"),
+                                                                        b.newSingle("price1"),
+                                                                        b.newSingle("price2")
+                                                                    )
+                                                                    .build()
+                                                            ).build()
+                                                    ).build()
+                                            ).build(),
+                                        b.newSingle("totalSum")).build()
                             ).build()
-                    ).build()
-            ).build();
 
+                    ).build())
+            .build();
 
         ///////////// DATA INIT ///////////////
 
-        PhysicianRow physicianRow1 = new PhysicianRow("Phys 1");
+        BillingSummaryReportData reportData = new BillingSummaryReportData();
+
+        PhysicianRow physicianRow1 = reportData.get(1, "Phys 1");
 
         facRow1(physicianRow1, 1000, "Facility 1");
 
@@ -59,11 +91,9 @@ public class Example3 {
 //        document.close();
 //        System.exit(0);
 
-
-        billingCodeTable.applyAdder(false, physicianRow1.get("Facility 1").codeToRow.values(), true, false);
+        physRows.applyAdder(false, reportData.physicianRowMap.values(), true, false);
 
         b.close();
-
 
         //
         // | doctor 1 [(cont.)] |
@@ -139,7 +169,7 @@ public class Example3 {
 //        addPatient(billingRow, 3, "Patient Pat3");
 //        addPatient(billingRow, 3, "Patient Pat3");
 //
-        for(int i = 4;i<80;i++){
+        for (int i = 4; i < 80; i++) {
             addPatient(billingRow, i, "Patient Pat" + i);
         }
     }

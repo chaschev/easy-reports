@@ -1,14 +1,12 @@
 package com.chaschev.reports.itext;
 
-import com.itextpdf.text.Chunk;
-
 import java.lang.reflect.Field;
 
 /**
  * User: chaschev
  * Date: 6/14/13
  */
-public class FieldProjector<T> extends HCompositeColumnFall.Projector<T> {
+public class FieldProjector<T> extends Projector<T> {
     protected Field[] fields;
 
     public FieldProjector(Class<T> aClass, String... fieldNames) {
@@ -33,11 +31,13 @@ public class FieldProjector<T> extends HCompositeColumnFall.Projector<T> {
         try {
             Object[] result = new Object[fields.length];
             for (int i = 0; i < fields.length; i++) {
-                result[i] = new Object[]{new Chunk(String.valueOf(fields[i].get(obj)))};
+                Object o = fields[i].get(obj);
+                result[i] = chunks(o);
             }
             return new RowData(result);
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }
     }
+
 }
