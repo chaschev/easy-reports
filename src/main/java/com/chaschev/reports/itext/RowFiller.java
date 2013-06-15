@@ -120,7 +120,7 @@ public class RowFiller {
         return AdditionResult.OVERFLOW;
     }
 
-    public AdditionResult apply(boolean simulate, CompositeColumnFall columnFall, ColumnFall[] children, RowData childrenData, boolean afterPageBreak) {
+    public AdditionResult apply(boolean simulate, HCompositeColumnFall columnFall, ColumnFall[] children, RowData childrenData, boolean afterPageBreak) {
 //        if(allowBreak ){
 //            return applyBreakable(simulate, columnFall, children, childrenData);
 //        }

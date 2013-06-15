@@ -5,27 +5,30 @@ import com.itextpdf.text.PageSize;
 
 import java.io.FileOutputStream;
 
-public class Example2 {
+public class Example3 {
 
     public static void main(String[] args) throws Exception {
         ReportBuilder b = ReportBuilder.newReportBuilder(
             new FileOutputStream("e:/test.pdf"), PageSize.A4
         );
 
+//        b.newCompositeBuilder(FacilityRow.class)
+        //todo add fixed widths (10px, 10%)
         //todo b. can be avoided
         IterableCompositeColumnFall<BSRBillingRow> billingCodeTable = b
             .newTableBuilder(BSRBillingRow.class, "codeTable")
             .rectangle(0, 0, 690, 842)       //todo this should be moved into a root builder
             .rows(
                 b.newCompositeBuilder(BSRBillingRow.class, "codeTableRow")
-                    .setRelativeWidths(10, 90)
+                    .setRelativeWidths(3, 10, 80)
                     .setChildrenProjector(new HCompositeColumnFall.Projector<BSRBillingRow>() {
                         @Override
                         public RowData<BSRBillingRow> apply(final BSRBillingRow bRow) {
-                            return new RowData<BSRBillingRow>(new Object[]{bRow.code}, bRow.rows);
+                            return new RowData<BSRBillingRow>(new Object[]{}, new Object[]{bRow.code}, bRow.rows);
                         }
                     })
                     .addChildren(
+                        b.newSingle("empty"),
                         b.newSingle("code"),
                         b.newTableBuilder(BSRPatientRow.class, "patientTable")
                             .rows(

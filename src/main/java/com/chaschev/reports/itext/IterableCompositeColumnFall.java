@@ -28,16 +28,24 @@ import static com.chaschev.reports.itext.AdditionResultType.*;
  * patient table,
  * table of (code, patient table)
  */
-public class IterableCompositeColumnFall<DATA> extends CompositeColumnFall<Iterable<DATA>, IterableCompositeColumnFall<DATA>> {
+public class IterableCompositeColumnFall<DATA> extends ColumnFall<Iterable<DATA>, IterableCompositeColumnFall<DATA>> {
     protected int breakCount;
 
     protected ColumnFall<DATA, ? extends ColumnFall> rowColumnFall;
 
+    //mode 1
+//    protected Function<DATA, Iterable> dataToRows;
+
+    //mode 2
+    //vertical composite
+//    protected Projector<DATA> childrenProjector;
+
+    protected float yLine = Float.MAX_VALUE / 4;
 
     public IterableCompositeColumnFall(String name) {
         super(name);
 
-        this.childrenProjector = CompositeColumnFall.IDENTITY_PROJECTOR;
+//        this.childrenProjector = CompositeColumnFall.IDENTITY_PROJECTOR;
     }
 
     @Override
@@ -109,7 +117,7 @@ public class IterableCompositeColumnFall<DATA> extends CompositeColumnFall<Itera
     }
 
     private AdditionResult addIterable(boolean simulate, Iterable<DATA> data, boolean allowBreak) {
-        rowFiller.allowBreak = allowBreak;
+//        rowFiller.allowBreak = allowBreak;
 
         AdditionResult result = addIterable(simulate, data, allowBreak, false);
 
@@ -148,17 +156,11 @@ public class IterableCompositeColumnFall<DATA> extends CompositeColumnFall<Itera
         rowColumnFall.rollback();
     }
 
-    @Override
-    public void handlePageBreak() {
-        super.handlePageBreak();
-        breakCount++;
-    }
-
     public IterableCompositeColumnFall<DATA> setRowFall(ColumnFall<DATA, ? extends ColumnFall> rowColumnFall) {
-        setRelativeWidths(1);
-        setChildrenProjector(CompositeColumnFall.IDENTITY_PROJECTOR);
+//        setChildrenProjector(CompositeColumnFall.IDENTITY_PROJECTOR);
         this.rowColumnFall = rowColumnFall;
-        addChild(rowColumnFall);
+        this.children = new ColumnFall[]{rowColumnFall};
+//        addChild(rowColumnFall);
         return this;
     }
 }

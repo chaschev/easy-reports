@@ -8,7 +8,7 @@ import java.lang.reflect.Field;
  * User: chaschev
  * Date: 6/14/13
  */
-public class FieldProjector<T> extends CompositeColumnFall.Projector<T> {
+public class FieldProjector<T> extends HCompositeColumnFall.Projector<T> {
     protected Field[] fields;
 
     public FieldProjector(Class<T> aClass, String... fieldNames) {

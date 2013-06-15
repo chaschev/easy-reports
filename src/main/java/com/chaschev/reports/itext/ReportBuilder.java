@@ -50,32 +50,32 @@ public class ReportBuilder {
     }
 
     public static class CompositeBuilder<DATA>{
-        CompositeColumnFall<DATA, CompositeColumnFall> compositeColumnFall;
+        HCompositeColumnFall<DATA, HCompositeColumnFall> HCompositeColumnFall;
 
         public CompositeBuilder(Class<DATA> aClass, String name, ReportBuilder reportBuilder) {
-            compositeColumnFall = new CompositeColumnFall<DATA, CompositeColumnFall>(name);
-            compositeColumnFall.document = reportBuilder.document;
+            HCompositeColumnFall = new HCompositeColumnFall<DATA, HCompositeColumnFall>(name);
+            HCompositeColumnFall.document = reportBuilder.document;
         }
 
         public CompositeBuilder<DATA> setRelativeWidths(float... values) {
-            compositeColumnFall.setRelativeWidths(values);
+            HCompositeColumnFall.setRelativeWidths(values);
             return this;
         }
 
-        public CompositeBuilder<DATA> setChildrenProjector(CompositeColumnFall.Projector<DATA> childrenProjector) {
-            compositeColumnFall.setChildrenProjector(childrenProjector);
+        public CompositeBuilder<DATA> setChildrenProjector(HCompositeColumnFall.Projector<DATA> childrenProjector) {
+            HCompositeColumnFall.setChildrenProjector(childrenProjector);
             return this;
         }
 
         public CompositeBuilder<DATA> addChildren(ColumnFall... children) {
             for (ColumnFall child : children) {
-                compositeColumnFall.addChild(child);
+                HCompositeColumnFall.addChild(child);
             }
             return this;
         }
 
         public ColumnFall<DATA, ? extends ColumnFall> build() {
-            return compositeColumnFall;
+            return HCompositeColumnFall;
         }
     }
 
@@ -99,7 +99,7 @@ public class ReportBuilder {
 
         public IterableCompositeColumnFall<DATA> build() {
             if(tableColumnFall.isRectangleSet()){
-                tableColumnFall.calcChildrenPositions();
+                tableColumnFall.initPositions();
             }
             return tableColumnFall;
         }

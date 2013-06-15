@@ -13,7 +13,7 @@ import static com.chaschev.reports.itext.AdditionResultType.OVERFLOW;
  */
 
 // (code, patient table) row is this
-public class CompositeColumnFall<DATA, T extends CompositeColumnFall> extends ColumnFall<DATA, T> {
+public class HCompositeColumnFall<DATA, T extends HCompositeColumnFall> extends ColumnFall<DATA, T> {
     public static final Projector IDENTITY_PROJECTOR = new Projector() {
         @Override
         protected RowData apply(Object o) {
@@ -26,7 +26,8 @@ public class CompositeColumnFall<DATA, T extends CompositeColumnFall> extends Co
     // for row-mode it's equal to yLine of any of the children
     protected float yLine = Float.MAX_VALUE / 4;
 
-    ColumnFall[] children;
+    protected float[] childrenRelativeWidths;
+    protected transient float[] childrenXPositions;
 
     protected RowFiller rowFiller = new RowFiller();
 
@@ -44,7 +45,7 @@ public class CompositeColumnFall<DATA, T extends CompositeColumnFall> extends Co
 
     Projector<DATA> childrenProjector;
 
-    public CompositeColumnFall(String name) {
+    public HCompositeColumnFall(String name) {
         super(name);
     }
 
@@ -94,28 +95,58 @@ public class CompositeColumnFall<DATA, T extends CompositeColumnFall> extends Co
     }
 
 
-    @Override
-    public void handlePageBreak() {
+    //todo hide
+    public T initPositions() {
+        calcChildrenWidthsFromRelatives();
 
-        if (parent != null) {
-            parent.handlePageBreak();
-            yLine = parent.getYLine();
-        } else {
-            document.newPage();
-            yLine = ury;
+        for (int i = 0; i < children.length; i++) {
+            ColumnFall child = children[i];
+
+            child.setRectangle(childrenXPositions[i], lly, childrenXPositions[i + 1], ury);
+            child.setYLine(ury);
+            child.initPositions();
         }
 
-        calcChildrenPositions();
+        Utils.print("[%s]: calcing positions, rect: [%.1f, %.1f]-[%.1f, %.1f], yLine: %.1f, children: %s%n", name,
+            llx, lly, urx, ury, yLine, Arrays.toString(childrenXPositions)
+        );
 
-        onNewPage();
+
+        return (T) this;
     }
 
-
-    protected void onNewPage() {
-        //print headers
+    public T setChildrenProjector(Projector<DATA> childrenProjector) {
+        this.childrenProjector = childrenProjector;
+        return (T) this;
     }
 
-    public CompositeColumnFall<DATA, T> addChild(ColumnFall columnFall) {
+    public T setRelativeWidths(float... values){
+        this.childrenRelativeWidths = values;
+        return (T) this;
+//        return calcChildrenWidthsFromRelatives();
+    }
+
+    protected T calcChildrenWidthsFromRelatives() {
+        double sum = 0;
+
+        for (float value : childrenRelativeWidths) {
+            sum += value;
+        }
+
+        double totalWidth = urx - llx;
+
+        childrenXPositions = new float[childrenRelativeWidths.length + 1];
+
+        childrenXPositions[0] = llx;
+
+        for (int i = 0; i < childrenRelativeWidths.length; i++) {
+            childrenXPositions[i+1] = childrenXPositions[i] + (float) (totalWidth * childrenRelativeWidths[i] / sum);
+        }
+
+        return (T) this;
+    }
+
+    public HCompositeColumnFall<DATA, T> addChild(ColumnFall columnFall) {
         Preconditions.checkNotNull(childrenRelativeWidths);
 
         if (children == null) {
@@ -134,33 +165,5 @@ public class CompositeColumnFall<DATA, T extends CompositeColumnFall> extends Co
         columnFall.document = document;
 
         return this;
-    }
-
-    //todo hide
-    public CompositeColumnFall<DATA, T> calcChildrenPositions() {
-        calcChildrenWidthsFromRelatives();
-
-        for (int i = 0; i < children.length; i++) {
-            ColumnFall child = children[i];
-
-            child.setRectangle(childrenXPositions[i], lly, childrenXPositions[i + 1], ury);
-            child.setYLine(ury);
-
-            if (child instanceof CompositeColumnFall) {
-                ((CompositeColumnFall) child).calcChildrenPositions();
-            }
-        }
-
-        Utils.print("[%s]: calcing positions, rect: [%.1f, %.1f]-[%.1f, %.1f], yLine: %.1f, children: %s%n", name,
-            llx, lly, urx, ury, yLine, Arrays.toString(childrenXPositions)
-        );
-
-
-        return this;
-    }
-
-    public T setChildrenProjector(Projector<DATA> childrenProjector) {
-        this.childrenProjector = childrenProjector;
-        return (T) this;
     }
 }
