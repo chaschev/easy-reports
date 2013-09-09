@@ -16,13 +16,20 @@
 
 package com.chaschev.itext;
 
+import com.chaschev.chutils.util.Exceptions;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.itextpdf.text.*;
 import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfWriter;
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
 
 /**
  * User: chaschev
@@ -43,15 +50,36 @@ public class ITextBuilder  {
     protected final RectangleBuilder reusableRectangleBuilder = new RectangleBuilder();
 
     protected Document document;
+    private final OutputStream os;
     protected PdfWriter writer;
-    protected PdfContentByte canvas;
+    protected CanvasBuilder canvas;
 
     protected StyleRegister styles = new StyleRegister(this);
 
     public ITextBuilder(Document document, PdfWriter writer) {
         this.document = document;
         this.writer = writer;
-        canvas = writer.getDirectContent();
+        canvas = new CanvasBuilder(writer.getDirectContent());
+        os = null;
+    }
+
+    public ITextBuilder(Document document) {
+        this(document, new ByteArrayOutputStream(65536));
+    }
+
+    public ITextBuilder(Document document, OutputStream os) {
+        try {
+            this.document = document;
+            this.os = os;
+
+            writer = PdfWriter.getInstance(document, os);
+
+            document.open();
+
+            canvas = new CanvasBuilder(writer.getDirectContent());
+        } catch (DocumentException e) {
+            throw Exceptions.runtime(e);
+        }
     }
 
     public TableBuilder newTableBuilder(float... relativeWidths) {
@@ -60,8 +88,37 @@ public class ITextBuilder  {
                 .splitRows(TableSplit.SPLIT_ALL);
     }
 
-    public void setCanvas(PdfContentByte canvas) {
-        this.canvas = canvas;
+    public ITextBuilder close() {
+        document.close();
+        return this;
+    }
+
+    public byte[] getBytes() {
+        if (os instanceof ByteArrayOutputStream) {
+            return ((ByteArrayOutputStream) os).toByteArray();
+        }
+
+        throw new IllegalStateException("os must be of type ByteArrayOutputStream, but is of type " + (os == null ? "null" : os.getClass().getSimpleName()));
+    }
+
+    public ITextBuilder saveToFile(File file) {
+        final File parent = file.getParentFile();
+
+        if(!parent.exists()){
+            parent.mkdirs();
+        }
+
+        try {
+            FileUtils.writeByteArrayToFile(file, getBytes());
+            return this;
+        } catch (IOException e) {
+            throw Exceptions.runtime(e);
+        }
+    }
+
+    public ITextBuilder drawBorders() {
+        drawBorders = true;
+        return this;
     }
 
     public enum TableSplit{
@@ -124,13 +181,13 @@ public class ITextBuilder  {
     public ColumnTextBuilder reuseColumnTextBuilder(){
         Preconditions.checkNotNull(canvas);
 
-        return applyDefaultSettings(reusableColumnTextBuilder.newColumnText(canvas));
+        return applyDefaultSettings(reusableColumnTextBuilder.newColumnText(canvas.canvas));
     }
 
     public ColumnTextBuilder newColumnTextBuilder(){
         Preconditions.checkNotNull(canvas);
 
-        return applyDefaultSettings(new ColumnTextBuilder(this).newColumnText(canvas));
+        return applyDefaultSettings(new ColumnTextBuilder(this).newColumnText(canvas.canvas));
     }
 
     public ColumnTextBuilder applyDefaultSettings(ColumnTextBuilder ctb) {
@@ -153,10 +210,6 @@ public class ITextBuilder  {
         return new RectangleBuilder().reuse(new Rectangle(r));
     }
 
-    ITextBuilder() {
-    }
-
-
     public ITextBuilder setDefaultPhraseSettings(Predicate<PhraseBuilder> defaultPhraseSettings) {
         this.defaultPhraseSettings = defaultPhraseSettings;
 
@@ -178,6 +231,10 @@ public class ITextBuilder  {
     }
 
     public PdfContentByte getCanvas() {
+        return canvas.canvas;
+    }
+
+    public CanvasBuilder getCanvasBuilder(){
         return canvas;
     }
 

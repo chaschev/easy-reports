@@ -36,14 +36,29 @@ public class SplitResult {
 
     public int elementsAddedCount;
 
+    public int totalElementCount;
+
+    public SplitResult() {
+    }
+
     double getTotalScore(){
         return score - getPenalty();
     }
 
     public double getPenalty() {
-        return columnPenalty(leftColumnHeight) + columnPenalty(rightColumnHeight)
+        return
+            rightNotUsedPenalty() +
+            columnPenalty(leftColumnHeight) + columnPenalty(rightColumnHeight)
             + rightElementSplitHeight +
             pageSplitPenalty();
+    }
+
+    private double rightNotUsedPenalty() {
+        if(rightColumnHeight <= 0.001 && elementsAddedCount < totalElementCount){
+            return 10;
+        }
+
+        return 0;
     }
 
     private double columnPenalty(double columnHeight) {
@@ -103,6 +118,10 @@ public class SplitResult {
         return this;
     }
 
+    public SplitResult setPageSplit(int fullyRenderedItems, boolean hasNotFlushedText) {
+        return setPageSplit(!hasNotFlushedText && fullyRenderedItems == totalElementCount);
+    }
+
     public SplitResult setPageSplit(boolean pageSplit) {
         this.pageSplit = pageSplit;
         return this;
@@ -115,7 +134,7 @@ public class SplitResult {
 
     public void assignIfWorseThan(SplitResult result) {
         if(getTotalScore() < result.getTotalScore()){
-            throw new UnsupportedOperationException("todo");
+            copyFrom(result);
         }
     }
 
@@ -125,6 +144,8 @@ public class SplitResult {
     }
 
     public SplitResult copyFrom(SplitResult r){
+        referenceHeight = r.referenceHeight;
+
         rectHeight = r.rectHeight;
         leftColumnHeight = r.leftColumnHeight;
         rightColumnHeight = r.rightColumnHeight;

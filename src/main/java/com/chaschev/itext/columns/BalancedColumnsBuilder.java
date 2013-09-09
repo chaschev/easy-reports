@@ -80,8 +80,10 @@ public class BalancedColumnsBuilder {
         this.b = b;
     }
 
-    public BalancedColumnsBuilder add(Element element) {
-        sequence.add(element);
+    public BalancedColumnsBuilder add(Element... element) {
+        for (Element el : element) {
+            sequence.add(el);
+        }
         return this;
     }
 
@@ -94,11 +96,7 @@ public class BalancedColumnsBuilder {
     }
 
     public void go() {
-        if(initialLeftCTB == null){
-            go(b.newColumnTextBuilder());
-        }else{
-            go(b.newColumnTextBuilder().setACopy(initialLeftCTB));
-        }
+        _go();
     }
 
     /**
@@ -202,7 +200,9 @@ public class BalancedColumnsBuilder {
                     Element el = elements.get(i);
 
                     if(currentCtb.fits(el)){
-                        currentCtb.go(simulate);
+                        currentCtb
+                            .addElement(el)
+                            .go(simulate);
                     }else{
                         break;
                     }
@@ -255,7 +255,15 @@ public class BalancedColumnsBuilder {
 
     }
 
-    private void go(ColumnTextBuilder ctbForLeftColumn){
+    private void _go(){
+        if(b.drawBorders){
+            b.getCanvasBuilder().drawGrayRectangle(origRectangle.get(), 0.5f);
+        }
+
+        currentLeftResult.elementsAddedCount =
+        currentRightResult.elementsAddedCount =
+        bestResult.elementsAddedCount = sequence.size();
+
         //try adding into a single infinite column to calc height
         final float hCenter = horCenter();
 
@@ -266,18 +274,26 @@ public class BalancedColumnsBuilder {
 
         minimalLeftColumnHeight = MINIMAL_HEIGHT_COEFFICIENT * referenceHeight;
 
-        //todo quickly add elements for minimalLeftColumnHeight
-
         int i = startAtElement;
 
         List<Element> elements = sequence.getElements();
 
-        new DirectContentAdder(leftCTB)
+        final DirectContentAdder.Result quickResult = new DirectContentAdder(leftCTB)
             .setStartWith(initialLeftCTB)
             .setStartAtIndex(startAtElement)
             .setQuickHeight(minimalLeftColumnHeight)
             .setSimulate(true)
             .go();
+
+        i = quickResult.index;
+
+        bestResult.assignIfWorseThan(
+            currentLeftResult
+                .setElementsAddedCount(i)
+                .setLeftElementSplitHeight(0)
+                .setLeftColumnHeight(leftCTB.getCurrentHeight())
+                .setPageSplit(i, quickResult.noContentLeft(elements.size()))
+        );
 
         elementsCycle:
         for (; i < elements.size(); i++) {
@@ -352,6 +368,11 @@ public class BalancedColumnsBuilder {
 //        setColumn(bestResult, b.newColumnTextBuilder())
         setColumn((float) bestResult.leftColumnHeight, hCenter, true, true, singleColumnRect, leftCTB);
         setColumn((float) bestResult.rightColumnHeight, hCenter, false, false, singleColumnRect, rightCTB);
+
+        if(b.drawBorders){
+            b.getCanvasBuilder().drawGrayRectangle(leftCTB.getSimpleColumnRectangle(), 0.9f);
+            b.getCanvasBuilder().drawGrayRectangle(rightCTB.getSimpleColumnRectangle(), 0.9f);
+        }
 
         final DirectContentAdder.Result addResult = new DirectContentAdder(leftCTB)
             .setStartWith(initialLeftCTB)

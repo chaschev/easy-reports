@@ -47,4 +47,8 @@ public class ElementSequence {
     public boolean isSpace(int i) {
         return elements.get(i) instanceof SpaceElement;
     }
+
+    public int size() {
+        return elements.size();
+    }
 }

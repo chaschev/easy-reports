@@ -51,12 +51,11 @@ public enum ITextSingleton {
         }
     }
 
-    public ITextBuilder newBuilder(){
-        return new ITextBuilder();
+    public ITextBuilder newBuilder(Document document){
+        return new ITextBuilder(document);
     }
 
     public ITextBuilder newBuilder(Document document, PdfWriter writer){
         return new ITextBuilder(document, writer);
     }
-
 }

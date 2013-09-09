@@ -22,11 +22,11 @@ import com.chaschev.itext.ITextSingleton;
 import com.chaschev.itext.Style;
 import com.itextpdf.text.*;
 import com.itextpdf.text.pdf.BaseFont;
-import com.itextpdf.text.pdf.PdfWriter;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.ByteArrayOutputStream;
+import java.io.File;
 
 /**
  * User: chaschev
@@ -37,7 +37,6 @@ public class BalancedColumnsBuilderTest {
 
     @Before
     public void createITextBuilder() throws DocumentException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         Rectangle pageSize = PageSize.LETTER;
         final int pageMarginTop = 36;
@@ -45,11 +44,7 @@ public class BalancedColumnsBuilderTest {
 
         Document document = new Document(pageSize, 18, 18, pageMarginTop, pageMarginBottom);
 
-        PdfWriter writer = PdfWriter.getInstance(document, baos);
-
-        document.open();
-
-        b = ITextSingleton.INSTANCE.newBuilder(document, writer);
+        b = ITextSingleton.INSTANCE.newBuilder(document).drawBorders();
 
         Font headerFont = FontFactory.getFont("OpenSansBold", BaseFont.WINANSI, BaseFont.EMBEDDED, 12f, Font.NORMAL);
         final Font subHeaderFont = FontFactory.getFont("OpenSansBold", BaseFont.WINANSI, BaseFont.EMBEDDED, 9f, Font.NORMAL);
@@ -79,12 +74,32 @@ public class BalancedColumnsBuilderTest {
         ;
     }
 
+    @BeforeClass
+    public static void createDirs(){
+    }
+
     @Test
-    public void testSimpleText1() throws Exception {
-        final BalancedColumnsBuilder builder = new BalancedColumnsBuilder(new Rectangle(500, 300, 800, 100), b);
+    public void testSimpleText() throws Exception {
+        final BalancedColumnsBuilder builder = new BalancedColumnsBuilder(new Rectangle(400, 300, 600, 400), b);
 
         builder.add(b.phrase("Test Phrase", "normal").build());
 
         builder.go();
+
+        b.close().saveToFile(new File("output/testSimpleText1.pdf"));
+    }
+
+    @Test
+    public void testSimpleText_TwoElements() throws Exception {
+        final BalancedColumnsBuilder builder = new BalancedColumnsBuilder(new Rectangle(400, 300, 600, 400), b);
+
+        builder.add(
+            b.phrase("Test Phrase 1", "subHeader").build(),
+            b.phrase("Test Phrase 2", "normal").build()
+        );
+
+        builder.go();
+
+        b.close().saveToFile(new File("output/testSimpleText1.pdf"));
     }
 }
