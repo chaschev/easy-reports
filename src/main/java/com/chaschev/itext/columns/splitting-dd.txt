@@ -1,0 +1,88 @@
+splitting items which must not be split - a huge penalty for this
+dangling list/table tails
+unbalanced columns (i.e. if your left column is right and right column only contains 3-5 list items it's visually better to put everything into the left column)
+page split
+text split
+
+---
+
+text can also be split. I makes sense to split the text if it's long
+during split an element could be added. So this would break balance in two of the columns. Example: (continued) or a table header
+same, an element could be removed - I can think only of empty space between elements.
+
+"split if only "
+
+- Table does not fit as a model because you can't delete a row from table after adding.
+
+Implementation details
+======================
+
+- we should minimize penalty before the page split and not to care about what happens on the following page - because it has all the space we need
+- not-adding space should be natural
+-
+
+Model
+=====
+
+- List of elements
+- Some elements have their own split-policies (table: can manipulate breaking, paragraph - can approximately manipulate breaking by adjusting virtual paragraph height)
+- Space-elements
+- Not breakable subsequence (i.e. header + the first paragraph) - can be done via unbreakable table
+- Element:
+
+Algo
+====
+
+- Calculate approximate single-column height. _minReferenceHeight := min(divide the result by 2, vertical space left on a page)
+- (optimization step) quickly add elements which entirely fit for 70% of _minReferenceHeight
+- for element in remainingElements
+-- (not needed, done via a table) If current element cannot be split from the previous one, then blah-blah, not needed
+-- if it's a space-element after a column/page break, don't add it
+-- try-splitting() with no atomic sub-items (lines for paragraphs, unbreakable row sets for tables)
+-- for atom in element
+--- if spaceLeft(atom)
+---- add an atom
+---- try-splitting() - here we will have dangling items
+--- else
+---- adjustRectHeight(atom)
+---- quit if doesn't fit the page
+---- quit if _heightPenalty + _elementSplitPenalty > one of previous results (optimization)
+
+try-splitting()
+- (optimization step) quickly add the second column with the height of the first one, no element breaks
+- quit if nothing is left (penalties: previous element split, disbalance)
+- _minPenalty := Integer.MAX
+- for element in remainingElements
+-- if isSpaceElement(element) && startOfColumn then skip
+-- _minPenalty := Math.min(_minPenalty, count penalties for (previous element split, page break))
+-- for atom in element
+--- add atom
+--- _minPenalty := Math.min(_minPenalty, count penalties for (previous element split, current element split, page break))
+-- //element is completely added
+
+
+details:
+
+- height will expand and will never shrink, so there is no need to
+
+Tests
+=====
+
+- it's better to have a bit unbalanced, but 5 lines instead of 1-2 after the header in the first column
+- (cont.) it's better to have right column a bit longer than 1-2 lines after the header in the first column
+- previous 2 for the tail
+- page split is bad - tests to have other penalties instead of having a page split
+
+# page split
+
+- if a single line moves to another page, it's really bad. better to move a small text to another page
+- though, if the text is huge, it's ok
+- previous 2 for beginning of the text
+- splitting long text in the middle is ok
+
+
+
+- never detach the header!
+
+
+
