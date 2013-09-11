@@ -28,6 +28,7 @@ import java.util.List;
 public class ElementSequence {
     final protected List<Element> elements;
     protected float[] heights;
+    public float initialContentHeight;
 
     public ElementSequence() {
          elements = new ArrayList<Element>();
@@ -63,5 +64,9 @@ public class ElementSequence {
 
     public int size() {
         return elements.size();
+    }
+
+    public float getInitialContentHeight() {
+        return initialContentHeight;
     }
 }

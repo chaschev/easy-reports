@@ -84,5 +84,7 @@ Tests
 
 - never detach the header!
 
+Future Ideas
+============
 
-
+ColumnText (aka content) can and must be an element!

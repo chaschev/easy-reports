@@ -46,7 +46,8 @@ public class SplitResult {
     }
 
     double getScore(){
-        return score + 20 * elementsAddedCount;
+        return score + 20 * elementsAddedCount
+            + (leftColumnHeight + rightColumnHeight) * 0.8;
     }
 
     double getTotalScore(){
@@ -56,8 +57,6 @@ public class SplitResult {
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("SplitResult{");
-
-
 
         sb.append("totalScore=").append(format(getTotalScore(), 1));
         sb.append(", penalty=").append(format(getPenalty(), 1));
@@ -157,6 +156,8 @@ public class SplitResult {
 
         if(leftColumnHeight > rightColumnHeight){
             v *= 0.8;
+        }else{
+            v *= 1.6;
         }
 
         if(referenceHeight < 11.0 * 3){
@@ -286,9 +287,9 @@ public class SplitResult {
 
     public void assignIfWorseThan(SplitResult result) {
         if(BalancedColumnsBuilder.logger.isTraceEnabled()){
-            if(!result.pageSplit){
+//            if(!result.pageSplit){
                 BalancedColumnsBuilder.logger.trace("comparing to: \n  {}", result);
-            }
+//            }
         }
         if(getTotalScore() < result.getTotalScore()){
             BalancedColumnsBuilder.logger.trace("better score: \n  {}", result);
@@ -310,6 +311,10 @@ public class SplitResult {
 
         leftElementSplitHeight = r.leftElementSplitHeight;
         rightElementSplitHeight = r.rightElementSplitHeight;
+
+
+        leftElementSplitTotalHeight = r.leftElementSplitTotalHeight;
+        rightElementSplitTotalHeight = r.rightElementSplitTotalHeight;
 
         pageSplit = r.pageSplit;
 

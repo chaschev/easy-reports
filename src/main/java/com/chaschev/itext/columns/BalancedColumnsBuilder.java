@@ -49,10 +49,9 @@ public class BalancedColumnsBuilder {
     private int startAtElement = 0;
     private ColumnTextBuilder initialLeftCTB;
 
-    ElementSequence sequence = new ElementSequence();
+    private ElementSequence sequence = new ElementSequence();
 
     RectangleBuilder origRectangle;
-    RectangleBuilder workingRectangle;
 
     ITextBuilder b;
 
@@ -70,6 +69,7 @@ public class BalancedColumnsBuilder {
     private ColumnTextBuilder leftCTB;
     private ColumnTextBuilder rightCTB;
     final SplitResult bestResult = new SplitResult().worstResult();
+
 
     public BalancedColumnsBuilder(Rectangle rectangle, ITextBuilder b) {
         this.origRectangle = new RectangleBuilder().reuse(rectangle);
@@ -118,6 +118,8 @@ public class BalancedColumnsBuilder {
         double quickHeight;
         @Nullable
         private ColumnTextBuilder rightCTB;
+        private boolean setHeights;
+        private float startContentHeight = -10000;
 
         private DirectContentAdder(@Nonnull ColumnTextBuilder dest) {
             this.dest = dest;
@@ -149,19 +151,28 @@ public class BalancedColumnsBuilder {
             return this;
         }
 
+        public DirectContentAdder setHeights(boolean setHeights) {
+            this.setHeights = setHeights;
+            return this;
+        }
+
+        public boolean isHeights() {
+            return setHeights;
+        }
+
         public class Result{
             int status;
             int index;
-            ColumnTextBuilder content;
+            ColumnTextBuilder contentLeft;
 
-            public Result(int status, int index, ColumnTextBuilder content) {
+            public Result(int status, int index, ColumnTextBuilder contentLeft) {
                 this.status = status;
                 this.index = index;
-                this.content = content;
+                this.contentLeft = contentLeft;
             }
 
             public boolean hasContentLeft(int totalElementCount){
-                return !(content == null && totalElementCount == index);
+                return !(contentLeft == null && totalElementCount == index);
             }
         }
 
@@ -186,14 +197,29 @@ public class BalancedColumnsBuilder {
             if(startWith != null){
                 currentCtb.copyContentFrom(startWith);
 
-                if (ColumnText.hasMoreText(leftCTB.go(simulate))){
+                float yBefore = currentCtb.getYLine();
 
+                int status = currentCtb.go(simulate);
+
+                if(setHeights){
+                    startContentHeight = yBefore - currentCtb.getYLine();
+                }
+
+                if (ColumnText.hasMoreText(status)){
                     if (rightCTB != null) { // => quickHeight == 0
                         rightCTB.copyContentFrom(currentCtb);
 
                         currentCtb = rightCTB;
 
-                        if (ColumnText.hasMoreText(currentCtb.go(simulate))) {
+                        yBefore = currentCtb.getYLine();
+
+                        status = currentCtb.go(simulate);
+
+                        if(setHeights){
+                            startContentHeight += yBefore - currentCtb.getYLine();
+                        }
+
+                        if (ColumnText.hasMoreText(status)) {
                             return new Result(ColumnText.NO_MORE_COLUMN, startAtIndex, currentCtb);
                         }
                     } else{
@@ -221,6 +247,8 @@ public class BalancedColumnsBuilder {
 
             for (i = startAtElement; i < elements.size(); i++) {
                 Element el = elements.get(i);
+
+                float yBefore = currentCtb.getYLine();
 
                 if (el instanceof SpaceElement) {
                     SpaceElement space = (SpaceElement) el;
@@ -255,14 +283,14 @@ public class BalancedColumnsBuilder {
                         }
                     }
                 }
+
+                if(setHeights){
+                    sequence.setHeight(i, yBefore - currentCtb.getYLine());
+                }
             }
 
             return new Result(ColumnText.NO_MORE_TEXT, elements.size(), null);
         }
-    }
-
-    private void addContent(){
-
     }
 
     private void _go(){
@@ -286,7 +314,7 @@ public class BalancedColumnsBuilder {
         leftCTB = setColumn((float) referenceHeight, hCenter, true, true, singleColumnRect, b.newColumnTextBuilder());
         rightCTB = setColumn((float) referenceHeight, hCenter, false, true, singleColumnRect, b.newColumnTextBuilder());
 
-        minimalLeftColumnHeight = MINIMAL_HEIGHT_COEFFICIENT * referenceHeight;
+        minimalLeftColumnHeight = MINIMAL_HEIGHT_COEFFICIENT * referenceHeight / 2;
 
         int i;
 
@@ -311,9 +339,11 @@ public class BalancedColumnsBuilder {
 
         boolean pageOverFlow = false;
 
-        if(quickResult.content != null){
-            leftCTB.copyContentFrom(quickResult.content);
-            pageOverFlow = iterateOnLeft(leftCTB.newAtomicIteratorFor(), i - 1, currentLeftResult, leftCTB.getTop());
+        //the only situation possible is the content left from initialContent
+        if(quickResult.contentLeft != null){
+            leftCTB.copyContentFrom(quickResult.contentLeft);
+            pageOverFlow = iterateOnLeft(leftCTB.newAtomicIteratorFor(), i - 1,
+                currentLeftResult, leftCTB.getTop(), sequence.initialContentHeight);
         }
 
         if(i == elements.size()){
@@ -360,7 +390,7 @@ public class BalancedColumnsBuilder {
 
                 final Iterator<AtomicIncreaseResult> iterator = leftCTB.newAtomicIteratorFor(el);
 
-                if (iterateOnLeft(iterator, i, currentResult, elementTop)) {
+                if (iterateOnLeft(iterator, i, currentResult, elementTop, sequence.getHeight(i))) {
                     break elementsCycle;
                 }
 
@@ -370,11 +400,6 @@ public class BalancedColumnsBuilder {
             currentResult
                 .setLeftColumnHeight(leftCTB.getCurrentHeight())
                 .setElementsAddedCount(i + 1);
-
-            //check height penalty
-            if (currentResult.getTotalScore() < bestResult.getTotalScore()) {
-                break;
-            }
         }
 
 
@@ -389,6 +414,9 @@ public class BalancedColumnsBuilder {
             b.getCanvasBuilder().drawGrayRectangle(rightCTB.getSimpleColumnRectangle(), BaseColor.GREEN);
         }
 
+        leftCTB.clearContent();
+        rightCTB.clearContent();
+
         final DirectContentAdder.Result addResult = new DirectContentAdder(leftCTB)
             .setStartWith(initialLeftCTB)
             .setStartAtIndex(startAtElement)
@@ -397,14 +425,18 @@ public class BalancedColumnsBuilder {
             .go();
 
         if(addResult.hasContentLeft(elements.size())){
-            startWithANewPage(addResult.content, addResult.index);
+            final ColumnTextBuilder contentCopy = addResult.contentLeft == null ? null :
+                b.newColumnTextBuilder().setACopy(addResult.contentLeft);
+
+
+            startWithANewPage(contentCopy, addResult.index);
         }
     }
 
-    private boolean iterateOnLeft(Iterator<AtomicIncreaseResult> iterator, int currentIndex, SplitResult currentResult, float elementTop) {
+    private boolean iterateOnLeft(Iterator<AtomicIncreaseResult> iterator, int currentIndex, SplitResult currentResult, float elementTop, float elementHeight) {
         currentResult
             .setLeftColumnHeight(leftCTB.getCurrentHeight())
-            .setLeftElementSplitHeight(elementTop - leftCTB.getYLine(), sequence.getHeight(currentIndex));
+            .setLeftElementSplitHeight(elementTop - leftCTB.getYLine(), elementHeight);
 
         if(currentResult.leftElementSplitHeight > 0){
             considerAddingToRight(currentIndex + 1, true);
@@ -415,7 +447,7 @@ public class BalancedColumnsBuilder {
 
             currentResult
                 .setLeftColumnHeight(leftCTB.getCurrentHeight())
-                .setLeftElementSplitHeight(elementTop - leftCTB.getYLine(), sequence.getHeight(currentIndex));
+                .setLeftElementSplitHeight(elementTop - leftCTB.getYLine(), elementHeight);
 
             switch (r.type) {
                 case PAGE_OVERFLOW:
@@ -433,8 +465,19 @@ public class BalancedColumnsBuilder {
         return false;
     }
 
-    private void startWithANewPage(ColumnTextBuilder ctb, int startAt) {
+    private void startWithANewPage(ColumnTextBuilder content, int startAt) {
+        //noinspection SimplifiableConditionalExpression
+        logger.debug("starting with a new page, content: {}, startAt: {}", content == null ? false : content.hasMoreText(), startAt);
 
+        final RectangleBuilder rect = b.reuseRectangleBuilder(origRectangle.get())
+            .setTop(b.getDocument().top())
+            .setBottom(b.getDocument().bottom());
+
+        b.getDocument().newPage();
+
+        new BalancedColumnsBuilder(content, startAt, rect.get(), b)
+            .setSequence(sequence)
+            .go();
     }
 
     private float calcReferenceHeight(float hCenter) {
@@ -447,15 +490,24 @@ public class BalancedColumnsBuilder {
         singleColumnRect.setBottom(-100000f);
         singleColumnRect.setRight(hCenter);
 
-        //todo applyPadding(tempR, true);
+        applyPadding(singleColumnRect, true);
 
         tempCtb.setSimpleColumn(singleColumnRect.get());
 
-        addSequence(tempCtb, true);
+        final DirectContentAdder adder = new DirectContentAdder(tempCtb);
+
+        adder
+            .setStartWith(initialLeftCTB)
+            .setStartAtIndex(startAtElement)
+            .setSimulate(true)
+            .setHeights(true)
+            .go();
+
+        sequence.initialContentHeight = adder.startContentHeight;
 
         float yAfter = tempCtb.getYLine();
 
-        return yBefore - yAfter;
+        return (yBefore - yAfter) ;
     }
 
     private void considerAddingToRight(int startAt, boolean hasNotFlushedText) {
@@ -503,8 +555,8 @@ public class BalancedColumnsBuilder {
 
         boolean pageOverFlow = false;
 
-        if(quickResult.content != null){
-            rightCTB.copyContentFrom(quickResult.content);
+        if(quickResult.contentLeft != null){
+            rightCTB.copyContentFrom(quickResult.contentLeft);
             AtomicIncreaseResult lastResult = iterateOnRight(i - 1, currentRightResult, rightCTB.getTop(), rightCTB.newAtomicIteratorFor());
             if(lastResult.type == ColumnTextBuilder.GrowthResultType.PAGE_OVERFLOW){
                 pageOverFlow = true;
@@ -565,11 +617,6 @@ public class BalancedColumnsBuilder {
                 .setRightElementSplitHeight(0, 0);
 
             bestResult.assignIfWorseThan(currentResult);
-
-            //check height penalty
-            if (currentResult.getTotalScore() < bestResult.getTotalScore()) {
-                break;
-            }
         }
     }
 
@@ -636,32 +683,6 @@ public class BalancedColumnsBuilder {
         return ctb;
     }
 
-    private void addSequence(ColumnTextBuilder ctb, boolean simulate) {
-        List<Element> elements = sequence.getElements();
-
-        float yLine = ctb.getYLine();
-
-        for (int i = 0; i < elements.size(); i++) {
-            Element el = elements.get(i);
-
-            if (el instanceof SpaceElement) {
-                SpaceElement space = (SpaceElement) el;
-
-                space.add(ctb, simulate);
-            } else {
-                ctb.addElement(el);
-
-                if (ColumnText.hasMoreText(ctb.go(simulate))) {
-                    throw new IllegalStateException("element " + el + " does not fit infinite column");
-                }
-            }
-
-            sequence.setHeight(i, yLine - ctb.getYLine());
-
-            yLine = ctb.getYLine();
-        }
-    }
-
     private void applyPadding(RectangleBuilder r, boolean isLeft) {
         if (isLeft) {
             r.setRight(r.getRight() - hPadding);
@@ -673,7 +694,9 @@ public class BalancedColumnsBuilder {
     private float horCenter() {
         return (origRectangle.getLeft() + origRectangle.getRight()) / 2;
     }
-    
-    
 
+    private BalancedColumnsBuilder setSequence(ElementSequence sequence) {
+        this.sequence = sequence;
+        return this;
+    }
 }

@@ -159,10 +159,13 @@ public class BalancedColumnsBuilderTest {
         return new Rectangle(200 + off, 600, 400 + off, 670);
     }
 
+    private static Rectangle newBottomRectangle(int top) {
+        final int off = 10;
+        return new Rectangle(200 + off, 100, 400 + off, top);
+    }
+
     @Test
     public void testSimpleText_TwoElements1() throws Exception {
-        showComment("Expected: two elements on the left.");
-
         final BalancedColumnsBuilder builder = new BalancedColumnsBuilder(newRectangle(), b);
 
         builder.add(
@@ -234,6 +237,19 @@ public class BalancedColumnsBuilderTest {
         expectations("ThreeLines", builder, 3, 0);
     }
 
+    @Test
+    public void testSimpleText_NineLines() throws Exception {
+        final BalancedColumnsBuilder builder = new BalancedColumnsBuilder(newRectangle(), b);
+
+        builder.add(
+            b.phrase(testPhrase(1, 9), "normal").build()
+        );
+
+        builder.go();
+
+        expectations("NineLines", builder, 5, 4);
+    }
+
 
     @Test
     public void testSimpleText_TwoElements_Balance1() throws Exception {
@@ -257,6 +273,11 @@ public class BalancedColumnsBuilderTest {
     }
 
     @Test
+    public void testSimpleText_TwoElements_Balance5() throws Exception {
+        twoPhrasesTest(3, 6, 6, 3);
+    }
+
+    @Test
     public void testSimpleText_TwoElements_SmallImbalance1() throws Exception {
         twoPhrasesTest(6, 9, 6, 9);
     }
@@ -271,6 +292,19 @@ public class BalancedColumnsBuilderTest {
         twoPhrasesTest(6, 15, 11, 10);
     }
 
+    @Test
+    public void temp_PageBreak1() throws Exception {
+        twoPhrasesTestPageBreak(7, 10, newBottomRectangle(120));
+    }
+
+    @Test
+    public void testSimpleText_TwoElements_PageBreak1() throws Exception {
+        for(int i = 8;i<18;i++){
+            for(int j = 1;j<18;j++){
+                twoPhrasesTestPageBreak(i, j, newBottomRectangle(120));
+            }
+        }
+    }
 
     public static String testPhrase(int phraseIndex, int lineCount) {
         StringBuilder sb = new StringBuilder(512);
@@ -278,14 +312,18 @@ public class BalancedColumnsBuilderTest {
         sb.append("Phrase ").append(phraseIndex).append(" - line 1/").append(lineCount).append("\n");
 
         for (int i = 0; i < lineCount - 1; i++) {
-            sb.append("line ").append(i + 1).append("\n");
+            sb.append("line ").append(i + 2).append("\n");
         }
 
         return sb.toString();
     }
 
     private void twoPhrasesTest(int lineCount1, int lineCount2, int expectedOnLeft, int expectedOnRight) {
-        final BalancedColumnsBuilder builder = new BalancedColumnsBuilder(newRectangle(), b);
+        twoPhrasesTest(lineCount1, lineCount2, expectedOnLeft, expectedOnRight, newRectangle());
+    }
+
+    private void twoPhrasesTest(int lineCount1, int lineCount2, int expectedOnLeft, int expectedOnRight, Rectangle rectangle) {
+        final BalancedColumnsBuilder builder = new BalancedColumnsBuilder(rectangle, b);
 
         builder.add(
             b.phrase(testPhrase(1, lineCount1), "normal").build(),
@@ -295,6 +333,23 @@ public class BalancedColumnsBuilderTest {
         builder.go();
 
         twoElementsExpectations(builder, expectedOnLeft, expectedOnRight, lineCount1, lineCount2);
+    }
+
+    private void twoPhrasesTestPageBreak(
+        int lineCount1, int lineCount2, Rectangle rectangle) {
+        ITextBuilder b = createTestBuilder();
+
+        final BalancedColumnsBuilder builder = new BalancedColumnsBuilder(rectangle, b);
+
+        builder.add(
+            b.phrase(testPhrase(1, lineCount1), "normal").build(),
+            b.phrase(testPhrase(2, lineCount2), "normal").build()
+        );
+
+        builder.go();
+
+        b.close().saveToFile(new File(String.format("output/BalancedSimpleText/PageBreak/TwoElements_h_%03.0f_%02d_%02d.pdf", rectangle.getTop(), lineCount1, lineCount2)));
+
     }
 
     private void twoElementsExpectations(BalancedColumnsBuilder builder, int expectedOnLeft, int expectedOnRight, int lineCount1, int lineCount2) {
