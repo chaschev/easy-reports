@@ -41,32 +41,77 @@ public class SplitResult {
     public SplitResult() {
     }
 
+    double getScore(){
+        return score + 20 * elementsAddedCount;
+    }
+
     double getTotalScore(){
-        return score - getPenalty();
+        return getScore() - getPenalty();
+    }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("SplitResult{");
+
+        sb.append("totalScore=").append(getTotalScore());
+        sb.append(", penalty=").append(getPenalty());
+        sb.append(", score=").append(getScore());
+        sb.append(", leftColumnHeight=").append(leftColumnHeight);
+        sb.append(", rightColumnHeight=").append(rightColumnHeight);
+        sb.append(", leftElementSplitHeight=").append(leftElementSplitHeight);
+        sb.append(", rightElementSplitHeight=").append(rightElementSplitHeight);
+        sb.append(", referenceHeight=").append(referenceHeight);
+        sb.append(", rectHeight=").append(rectHeight);
+        sb.append(", pageSplit=").append(pageSplit);
+        sb.append(", score=").append(score);
+        sb.append(", elementsAddedCount=").append(elementsAddedCount);
+        sb.append('}');
+
+        return sb.toString();
     }
 
     public double getPenalty() {
         return
             rightNotUsedPenalty() +
-            columnPenalty(leftColumnHeight) + columnPenalty(rightColumnHeight)
-            + rightElementSplitHeight +
-            pageSplitPenalty();
+                tooBigColumnPenalty(leftColumnHeight) + tooBigColumnPenalty(rightColumnHeight)
+                + columnBalancePenalty()
+                + leftSplitPenalty()
+                + rightSplitPenalty()
+                + pageSplitPenalty();
+    }
+
+    private double columnBalancePenalty() {
+        final double v = Math.abs(rightColumnHeight - leftColumnHeight);
+
+        if(leftColumnHeight > rightColumnHeight){
+            return v * 0.8;
+        }else{
+            return v;
+        }
+    }
+
+    private double rightSplitPenalty() {
+        return rightElementSplitHeight;
+    }
+
+    private double leftSplitPenalty() {
+        return leftElementSplitHeight;
     }
 
     private double rightNotUsedPenalty() {
         if(rightColumnHeight <= 0.001 && elementsAddedCount < totalElementCount){
-            return 10;
+            return referenceHeight/4;
         }
 
         return 0;
     }
 
-    private double columnPenalty(double columnHeight) {
+    private double tooBigColumnPenalty(double columnHeight) {
         double v = columnHeight - referenceHeight;
 
         if(v < 0) v = 0;
 
-        return v * 1.0;
+        return v * 6.0;
     }
 
     protected double pageSplitPenalty() {
@@ -108,18 +153,32 @@ public class SplitResult {
         return this;
     }
 
-    public SplitResult setLeftElementSplitHeight(double leftElementSplitHeight) {
-        this.leftElementSplitHeight = leftElementSplitHeight;
+    public SplitResult setLeftElementSplitHeight(double leftElementSplitHeight, float elementHeight) {
+        if(Math.abs(leftElementSplitHeight) < 0.001){
+            this.leftElementSplitHeight = 0;
+        } else {
+            this.leftElementSplitHeight =
+                Math.min(leftElementSplitHeight, elementHeight - leftElementSplitHeight);
+
+            pageSplit = true;
+        }
         return this;
     }
 
-    public SplitResult setRightElementSplitHeight(double rightElementSplitHeight) {
-        this.rightElementSplitHeight = rightElementSplitHeight;
+    public SplitResult setRightElementSplitHeight(double rightElementSplitHeight, float elementHeight) {
+        if(Math.abs(rightElementSplitHeight) < 0.001){
+            this.rightElementSplitHeight = 0;
+        }else{
+            this.rightElementSplitHeight =
+                Math.min(rightElementSplitHeight, elementHeight - rightElementSplitHeight);
+
+            pageSplit = true;
+        }
         return this;
     }
 
-    public SplitResult setPageSplit(int fullyRenderedItems, boolean hasNotFlushedText) {
-        return setPageSplit(!hasNotFlushedText && fullyRenderedItems == totalElementCount);
+    public SplitResult setPageSplit(int fullyRenderedItems, boolean hasMoreContent) {
+        return setPageSplit(hasMoreContent || fullyRenderedItems != totalElementCount);
     }
 
     public SplitResult setPageSplit(boolean pageSplit) {
@@ -134,6 +193,7 @@ public class SplitResult {
 
     public void assignIfWorseThan(SplitResult result) {
         if(getTotalScore() < result.getTotalScore()){
+            BalancedColumnsBuilder.logger.trace("better score: {}", result);
             copyFrom(result);
         }
     }

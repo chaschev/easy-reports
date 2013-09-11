@@ -27,6 +27,7 @@ import com.itextpdf.text.pdf.ColumnText;
 import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.interfaces.IAccessibleElement;
 
+import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.util.Iterator;
 import java.util.List;
@@ -37,6 +38,8 @@ import java.util.List;
  * Time: 3:05 PM
  */
 public class ColumnTextBuilder {
+    public static final SimpleGrowStrategy DEFAULT_GROW_STRATEGY = new SimpleGrowStrategy(10.0);
+
     private final ITextBuilder iTextBuilder;
     ColumnText columnText;
     private Rectangle simpleColumnRectangle;
@@ -44,6 +47,8 @@ public class ColumnTextBuilder {
     protected float pageBottom;
     protected float pageTop;
     private boolean frozen;
+
+    private ColumnTextBuilder storedState;
 
     public ColumnTextBuilder(ITextBuilder iTextBuilder) {
         this.iTextBuilder = iTextBuilder;
@@ -75,7 +80,13 @@ public class ColumnTextBuilder {
      * Avoid using this non-API method.
      */
     public boolean hasMoreText() {
-        return getVersion() != 0;
+        try {
+            final Object compositeElements = compositeElementsField.get(columnText);
+
+            return getVersion() != 0 || (compositeElements!=null && !((List)compositeElements).isEmpty());
+        } catch (IllegalAccessException e) {
+            throw Exceptions.runtime(e);
+        }
     }
 
     public boolean zeroHeightElement() {
@@ -100,6 +111,8 @@ public class ColumnTextBuilder {
     }
 
     public ColumnTextBuilder setACopy(ColumnTextBuilder source) {
+        clearContent();    //content is saved after setACopy
+
         setSimpleColumn(new Rectangle(source.simpleColumnRectangle));
 
         columnText.setACopy(source.columnText);
@@ -111,6 +124,10 @@ public class ColumnTextBuilder {
     }
 
     public ColumnTextBuilder copyContentFrom(ColumnTextBuilder source) {
+        if(source == this){
+            return this;
+        }
+
         final Rectangle temp = simpleColumnRectangle;
 
         setACopy(source);
@@ -192,7 +209,7 @@ public class ColumnTextBuilder {
         return this;
     }
 
-    public ColumnTextBuilder reset(){
+    public ColumnTextBuilder clearContent(){
         return setText(new Phrase(""));
     }
 
@@ -343,6 +360,16 @@ public class ColumnTextBuilder {
     }
 
     public ColumnTextBuilder setSimpleColumn(Rectangle rect) {
+        return setSimpleColumn(rect, false);
+    }
+
+    public ColumnTextBuilder setSimpleColumn(Rectangle rect, boolean saveYLine) {
+        float yLine = 0;
+
+        if(saveYLine){
+            yLine = getYLine();
+        }
+
         Preconditions.checkArgument(!frozen, "can't change column when frozen");
 
         columnText.setSimpleColumn(rect);
@@ -350,6 +377,10 @@ public class ColumnTextBuilder {
 
         this.pageBottom = iTextBuilder.document.bottom();
         this.pageTop = iTextBuilder.document.top();
+
+        if(saveYLine){
+            setYLine(yLine);
+        }
 
         return this;
     }
@@ -486,7 +517,11 @@ public class ColumnTextBuilder {
     public ColumnTextBuilder growBottom(float growBy) {
         iTextBuilder.reusableRectangleBuilder.reuse(simpleColumnRectangle).growBottom(growBy);
 
+        float yLine = getYLine();
+
         setSimpleColumn(simpleColumnRectangle);
+
+        setYLine(yLine);
 
         return this;
     }
@@ -524,84 +559,91 @@ public class ColumnTextBuilder {
         NO_MORE_CONTENT
     }
 
-    public static class AtomicIncreaseResult{
-        public float height;
-        public GrowthResultType type;
+    public Iterator<AtomicIncreaseResult> newAtomicIteratorFor(){
+        return newAtomicIteratorFor(null);
+    }
 
-        public AtomicIncreaseResult(float height, GrowthResultType type) {
-            this.height = height;
-            this.type = type;
+    public Iterator<AtomicIncreaseResult> newAtomicIteratorFor(@Nullable Element element){
+        final Rectangle rect = getSimpleColumnRectangle();
+
+        final RectangleBuilder original = iTextBuilder.newRectangleBuilder(rect);
+
+        rect.setBottom(rect.getTop());
+
+        setSimpleColumn(rect, true);
+
+        return newAtomicIteratorFor(element, iTextBuilder.newRectangleBuilder(rect), original);
+    }
+
+    public Iterator<AtomicIncreaseResult> newAtomicIteratorFor(@Nullable Element element, final RectangleBuilder modifiableRectangle, RectangleBuilder originalRectangle){
+        if(element != null){
+            addElement(element);
         }
-    }
 
-    public static abstract class AtomicIterator extends AbstractIterator<AtomicIncreaseResult> {
-    }
+        final GrowStrategy growStrategy;
 
-    public Iterator<AtomicIncreaseResult> newAtomicIteratorFor(Element element, final RectangleBuilder modifiableRectangle){
-        addElement(element);
-
-        final float step;
-
+        if(element == null){
+            growStrategy = DEFAULT_GROW_STRATEGY;
+        }else
         if (element instanceof Phrase) {
             Phrase phrase = (Phrase) element;
             final float approxHeight = phrase.getTotalLeading();
 
-            step = approxHeight / 5;
+            growStrategy = new SimpleGrowStrategy(approxHeight);
         }else{
             throw new UnsupportedOperationException("todo: support element: " + element.getClass().getSimpleName());
         }
 
-        return newAtomicIteratorFor(modifiableRectangle, step);
+        return newAtomicIteratorFor(modifiableRectangle, growStrategy, originalRectangle);
     }
 
-    public Iterator<AtomicIncreaseResult> newAtomicIteratorFor(final RectangleBuilder modifiableRectangle, final float step) {
+    public static interface GrowStrategy{
+        void apply(int step, RectangleBuilder modifiableRect);
+    }
+
+    public static final class SimpleGrowStrategy implements GrowStrategy{
+        final double approxHeight;
+        float smallStep;
+        float bigStep;
+
+        public SimpleGrowStrategy(double approxHeight) {
+            this.approxHeight = approxHeight;
+            smallStep = (float) (approxHeight / 5);
+            bigStep = (float) (approxHeight * 0.8);
+        }
+
+        @Override
+        public final void apply(int step, RectangleBuilder modifiableRect) {
+            if(step == 1){
+                modifiableRect.growBottom(bigStep);
+            }else{
+                modifiableRect.growBottom(smallStep);
+            }
+        }
+    }
+
+
+    public Iterator<AtomicIncreaseResult> newAtomicIteratorFor(final RectangleBuilder modifiableRectangle, final GrowStrategy growStrategy, RectangleBuilder originalRectangle) {
         final int status = go(true);
 
         if(!ColumnText.hasMoreText(status)){
             return Iterators.emptyIterator();
         }
 
-        return new AbstractIterator<AtomicIncreaseResult>() {
-            @Override
-            protected AtomicIncreaseResult computeNext() {
-                int stepCount = 0;
-
-                while(true){
-                    stepCount++;
-
-                    modifiableRectangle.growBottom(step);
-
-                    if(modifiableRectangle.getBottom() < pageBottom){
-                        return new AtomicIncreaseResult(stepCount * step, GrowthResultType.PAGE_OVERFLOW);
-                    }
-
-                    setSimpleColumn(modifiableRectangle.get());
-
-                    final int v1 = getVersion();
-
-                    int status = go(true);
-
-                    if(!ColumnText.hasMoreText(status)){
-                        return new AtomicIncreaseResult(stepCount * step, GrowthResultType.NO_MORE_CONTENT);
-                    }
-
-                    final int v2 = getVersion();
-
-                    if(v1 != v2){
-                        return new AtomicIncreaseResult(stepCount * step, GrowthResultType.NORMAL);
-                    }
-                }
-            }
-        };
+        return new AtomicIterator(modifiableRectangle, growStrategy, originalRectangle);
     }
 
     static final Field bidiLineField;
+    static final Field compositeElementsField;
     static final Field totalTextLength;
 
     static {
         try {
             bidiLineField = ColumnText.class.getDeclaredField("bidiLine");
             bidiLineField.setAccessible(true);
+
+            compositeElementsField = ColumnText.class.getDeclaredField("compositeElements");
+            compositeElementsField.setAccessible(true);
 
             totalTextLength = BidiLine.class.getDeclaredField("totalTextLength");
             totalTextLength.setAccessible(true);
@@ -611,6 +653,10 @@ public class ColumnTextBuilder {
         }
     }
 
+    /**
+     * @deprecated fix: add version for composite mode
+     */
+    @Deprecated
     public int getVersion(){
         try {
             final Object bidiLine = bidiLineField.get(columnText);
@@ -634,7 +680,7 @@ public class ColumnTextBuilder {
     }
 
     public boolean fits(ColumnTextBuilder reusableCtb, Element... element) {
-        reusableCtb.reset().setSimpleColumn(getCurrentRectangle().get());
+        reusableCtb.clearContent().setSimpleColumn(getCurrentRectangle().get());
 
         for (Element el : element) {
             if (el instanceof SpaceElement) {
@@ -649,5 +695,96 @@ public class ColumnTextBuilder {
         }
 
         return true;
+    }
+
+    public ColumnTextBuilder saveState(){
+        if(storedState == null){
+            storedState = iTextBuilder.newColumnTextBuilder();
+        }
+        storedState.setACopy(this);
+
+        return this;
+    }
+
+    public ColumnTextBuilder restoreState(){
+        setACopy(storedState);
+
+        return this;
+    }
+
+    private class AtomicIterator extends AbstractIterator<AtomicIncreaseResult> {
+        private final RectangleBuilder modifiableRectangle;
+        private final GrowStrategy growStrategy;
+        boolean finishOnNext;
+
+        private final RectangleBuilder originalRectangle;
+
+        public AtomicIterator(RectangleBuilder modifiableRectangle, GrowStrategy growStrategy, RectangleBuilder originalRectangle) {
+            this.modifiableRectangle = modifiableRectangle;
+            this.growStrategy = growStrategy;
+            this.originalRectangle = originalRectangle;
+        }
+
+        public void restore(){
+            setSimpleColumn(originalRectangle.get(), true);
+        }
+
+        @Override
+        protected AtomicIncreaseResult computeNext() {
+            if(finishOnNext){
+                endOfData();
+                return null;
+            }
+
+            int stepCount = 0;
+
+            final AtomicIncreaseResult r;
+
+            int status = go(true);
+
+            if(!ColumnText.hasMoreText(status)){
+                return new AtomicIncreaseResult(0, GrowthResultType.NORMAL);
+            }
+
+            float bottomBefore = modifiableRectangle.getBottom();
+
+            while(true){
+                stepCount++;
+
+                growStrategy.apply(stepCount, modifiableRectangle);
+
+                if(modifiableRectangle.getBottom() < pageBottom){
+                    r = new AtomicIncreaseResult(bottomBefore - modifiableRectangle.getBottom(), GrowthResultType.PAGE_OVERFLOW);
+                    finishOnNext();
+                    break;
+                }
+
+                setSimpleColumn(modifiableRectangle.get(), true);
+
+                final float v1 = getYLine();
+
+                status = go(true);
+
+                if(!ColumnText.hasMoreText(status)){
+                    r = new AtomicIncreaseResult(bottomBefore - modifiableRectangle.getBottom(), GrowthResultType.NO_MORE_CONTENT);
+                    finishOnNext();
+                    break;
+                }
+
+                final float v2 = getYLine();
+
+                if(v1 != v2){
+                    r = new AtomicIncreaseResult(bottomBefore - modifiableRectangle.getBottom(),
+                        GrowthResultType.NORMAL);
+                    break;
+                }
+            }
+
+            return r;
+        }
+
+        private void finishOnNext() {
+            finishOnNext = true;
+        }
     }
 }

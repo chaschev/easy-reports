@@ -39,10 +39,10 @@ public class CanvasBuilder {
         this.canvas = canvas;
     }
 
-    public CanvasBuilder drawGrayRectangle(Rectangle rectangle, float gray){
+    public CanvasBuilder drawGrayRectangle(Rectangle rectangle, BaseColor color){
         return saveState()
             .rectangle(rectangle.getLeft(), rectangle.getBottom(), rectangle.getWidth(), rectangle.getHeight())
-            .setGrayStroke(gray)
+            .setColorStroke(color)
             .setLineWidth(0.1f)
             .stroke()
             .restoreState();
@@ -653,8 +653,9 @@ public class CanvasBuilder {
         canvas.beginMarkedContentSequence(tag, property, inline);
     }
 
-    public void setColorStroke(BaseColor color) {
+    public CanvasBuilder setColorStroke(BaseColor color) {
         canvas.setColorStroke(color);
+        return this;
     }
 
     public void setLeading(float leading) {

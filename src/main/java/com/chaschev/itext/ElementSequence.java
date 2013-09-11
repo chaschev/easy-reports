@@ -27,6 +27,7 @@ import java.util.List;
  */
 public class ElementSequence {
     final protected List<Element> elements;
+    protected float[] heights;
 
     public ElementSequence() {
          elements = new ArrayList<Element>();
@@ -45,7 +46,19 @@ public class ElementSequence {
     }
 
     public boolean isSpace(int i) {
-        return elements.get(i) instanceof SpaceElement;
+
+        return i < elements.size() && elements.get(i) instanceof SpaceElement;
+    }
+
+    public void setHeight(int i, float h){
+        if(heights == null){
+            heights = new float[elements.size()];
+        }
+        heights[i] = h;
+    }
+
+    public float getHeight(int i){
+        return heights[i];
     }
 
     public int size() {

@@ -102,6 +102,8 @@ public class ITextBuilder  {
     }
 
     public ITextBuilder saveToFile(File file) {
+        close();
+
         final File parent = file.getParentFile();
 
         if(!parent.exists()){

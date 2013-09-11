@@ -18,6 +18,7 @@ package com.chaschev.itext.columns;
 
 import com.chaschev.itext.*;
 import com.google.common.base.Preconditions;
+import com.itextpdf.text.BaseColor;
 import com.itextpdf.text.Element;
 import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.ColumnText;
@@ -30,11 +31,18 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
+ * todo: test page breaks
+ * todo: table support
+ * todo: list support
+ * todo: test spaces
+ */
+
+/**
  * User: chaschev
  * Date: 9/8/13
  */
 public class BalancedColumnsBuilder {
-    private static final Logger logger = LoggerFactory.getLogger(BalancedColumnsBuilder.class);
+    public static final Logger logger = LoggerFactory.getLogger(BalancedColumnsBuilder.class);
 
     private static final double MINIMAL_HEIGHT_COEFFICIENT = 0.70;
 
@@ -152,8 +160,8 @@ public class BalancedColumnsBuilder {
                 this.content = content;
             }
 
-            public boolean noContentLeft(int elementCount){
-                return content == null && elementCount == index;
+            public boolean hasContentLeft(int totalElementCount){
+                return !(content == null && totalElementCount == index);
             }
         }
 
@@ -171,16 +179,16 @@ public class BalancedColumnsBuilder {
 
             int i;
 
-            if(initialLeftCTB != null){
-                currentCtb.copyContentFrom(initialLeftCTB);
+            if(quickHeight != 0){
+                currentCtb.adjustBottom((float) quickHeight);
+            }
 
-                if(quickHeight != 0){
-                    currentCtb.adjustBottom((float) quickHeight);
-                }
+            if(startWith != null){
+                currentCtb.copyContentFrom(startWith);
 
                 if (ColumnText.hasMoreText(leftCTB.go(simulate))){
-                    // quickHeight == 0
-                    if (rightCTB != null) {
+
+                    if (rightCTB != null) { // => quickHeight == 0
                         rightCTB.copyContentFrom(currentCtb);
 
                         currentCtb = rightCTB;
@@ -223,7 +231,7 @@ public class BalancedColumnsBuilder {
                         if(currentCtb == dest){
                             currentCtb = rightCTB;
                         }else if(currentCtb == rightCTB){
-                            return new Result(ColumnText.NO_MORE_COLUMN, i + 1, currentCtb.reset());
+                            return new Result(ColumnText.NO_MORE_COLUMN, i + 1, currentCtb.clearContent());
                         }
                     }
                 } else {
@@ -235,8 +243,10 @@ public class BalancedColumnsBuilder {
                                 return new Result(ColumnText.NO_MORE_COLUMN, i + 1, currentCtb);
                             } else {
                                 currentCtb = rightCTB;
+                                rightCTB.copyContentFrom(leftCTB);
 
-                                if (ColumnText.hasMoreText(currentCtb.go(simulate))) {
+                                final int status = currentCtb.go(simulate);
+                                if (ColumnText.hasMoreText(status)) {
                                     return new Result(ColumnText.NO_MORE_COLUMN, i + 1, currentCtb);
                                 }
                             }
@@ -257,24 +267,28 @@ public class BalancedColumnsBuilder {
 
     private void _go(){
         if(b.drawBorders){
-            b.getCanvasBuilder().drawGrayRectangle(origRectangle.get(), 0.5f);
+            b.getCanvasBuilder().drawGrayRectangle(origRectangle.get(), BaseColor.LIGHT_GRAY);
         }
 
-        currentLeftResult.elementsAddedCount =
-        currentRightResult.elementsAddedCount =
-        bestResult.elementsAddedCount = sequence.size();
+        currentLeftResult.totalElementCount =
+            currentRightResult.totalElementCount =
+             bestResult.totalElementCount = sequence.size();
 
         //try adding into a single infinite column to calc height
         final float hCenter = horCenter();
 
         referenceHeight = calcReferenceHeight(hCenter);
 
+        currentLeftResult.referenceHeight =
+            currentRightResult.referenceHeight =
+                bestResult.referenceHeight = referenceHeight;
+
         leftCTB = setColumn((float) referenceHeight, hCenter, true, true, singleColumnRect, b.newColumnTextBuilder());
         rightCTB = setColumn((float) referenceHeight, hCenter, false, true, singleColumnRect, b.newColumnTextBuilder());
 
         minimalLeftColumnHeight = MINIMAL_HEIGHT_COEFFICIENT * referenceHeight;
 
-        int i = startAtElement;
+        int i;
 
         List<Element> elements = sequence.getElements();
 
@@ -290,9 +304,9 @@ public class BalancedColumnsBuilder {
         bestResult.assignIfWorseThan(
             currentLeftResult
                 .setElementsAddedCount(i)
-                .setLeftElementSplitHeight(0)
+                .setLeftElementSplitHeight(0, 0)
                 .setLeftColumnHeight(leftCTB.getCurrentHeight())
-                .setPageSplit(i, quickResult.noContentLeft(elements.size()))
+                .setPageSplit(i, quickResult.hasContentLeft(elements.size()))
         );
 
         elementsCycle:
@@ -301,7 +315,7 @@ public class BalancedColumnsBuilder {
             final SplitResult currentResult = currentLeftResult;
 
             currentResult
-                .setLeftElementSplitHeight(0)
+                .setLeftElementSplitHeight(0, 0)
                 .setElementsAddedCount(i)
                 .setLeftColumnHeight(leftCTB.getCurrentHeight());
 
@@ -326,30 +340,38 @@ public class BalancedColumnsBuilder {
             } else {
                 float elementTop = leftCTB.getYLine();
 
-                final Iterator<ColumnTextBuilder.AtomicIncreaseResult> iterator = leftCTB.newAtomicIteratorFor(el, workingRectangle);
+                final Iterator<AtomicIncreaseResult> iterator = leftCTB.newAtomicIteratorFor(el);
 
                 currentResult
                     .setLeftColumnHeight(leftCTB.getCurrentHeight())
-                    .setLeftElementSplitHeight(elementTop - rightCTB.getYLine());
+                    .setLeftElementSplitHeight(elementTop - leftCTB.getYLine(), sequence.getHeight(i));
+
+                if(currentResult.leftElementSplitHeight > 0){
+                    considerAddingToRight(i + 1, true);
+                }
 
                 while (iterator.hasNext()) {
-                    ColumnTextBuilder.AtomicIncreaseResult r = iterator.next();
+                    AtomicIncreaseResult r = iterator.next();
 
-                    currentResult.setLeftElementSplitHeight(rightCTB.getCurrentHeight());
+                    currentResult
+                        .setLeftColumnHeight(leftCTB.getCurrentHeight())
+                        .setLeftElementSplitHeight(elementTop - leftCTB.getYLine(), sequence.getHeight(i));
 
                     switch (r.type) {
                         case PAGE_OVERFLOW:
                             break elementsCycle;
 
                         case NORMAL:
-                            currentResult.setLeftElementSplitHeight(elementTop - leftCTB.getYLine());
                             considerAddingToRight(i + 1, true);
                             break;
 
                         case NO_MORE_CONTENT:
+                            considerAddingToRight(i + 1, false);
                             break;
                     }
                 }
+
+//                leftCTB.restoreState();
             }
 
             currentResult
@@ -370,8 +392,8 @@ public class BalancedColumnsBuilder {
         setColumn((float) bestResult.rightColumnHeight, hCenter, false, false, singleColumnRect, rightCTB);
 
         if(b.drawBorders){
-            b.getCanvasBuilder().drawGrayRectangle(leftCTB.getSimpleColumnRectangle(), 0.9f);
-            b.getCanvasBuilder().drawGrayRectangle(rightCTB.getSimpleColumnRectangle(), 0.9f);
+            b.getCanvasBuilder().drawGrayRectangle(leftCTB.getSimpleColumnRectangle(), BaseColor.RED);
+            b.getCanvasBuilder().drawGrayRectangle(rightCTB.getSimpleColumnRectangle(), BaseColor.GREEN);
         }
 
         final DirectContentAdder.Result addResult = new DirectContentAdder(leftCTB)
@@ -381,7 +403,7 @@ public class BalancedColumnsBuilder {
             .setSimulate(false)
             .go();
 
-        if(!addResult.noContentLeft(elements.size())){
+        if(addResult.hasContentLeft(elements.size())){
             startWithANewPage(addResult.content, addResult.index);
         }
     }
@@ -412,29 +434,77 @@ public class BalancedColumnsBuilder {
     }
 
     private void considerAddingToRight(int startAt, boolean hasNotFlushedText) {
-        currentRightResult.copyFrom(currentLeftResult);
+        logger.trace("adding to right, i: {}, leftSplit: {}", startAt, currentLeftResult.leftElementSplitHeight);
 
-        rightCTB.setACopy(leftCTB);
+
+        //copy content from the left
+        rightCTB
+            .setACopy(leftCTB)
+            .setYLine(leftCTB.getTop());
 
         if(!hasNotFlushedText && sequence.isSpace(startAt)){
             startAt++;
         }
 
+        //we can flush what's left from the previous column
+        if(rightCTB.hasMoreText()){
+            rightCTB.go(true);
+        }
+
+        currentRightResult.copyFrom(currentLeftResult);
+
+        //copied from left method
+        int i;
+
         List<Element> elements = sequence.getElements();
 
+        final DirectContentAdder.Result quickResult = new DirectContentAdder(rightCTB)
+            .setStartWith(leftCTB)
+            .setStartAtIndex(startAt)
+            .setQuickHeight(leftCTB.getCurrentHeight())
+            .setSimulate(true)
+            .go();
+
+        i = quickResult.index;
+
+        bestResult.assignIfWorseThan(
+            currentRightResult
+                .setElementsAddedCount(i)
+                .setRightElementSplitHeight(0, 0)
+                .setRightColumnHeight(rightCTB.getCurrentHeight())
+                .setPageSplit(i, quickResult.hasContentLeft(elements.size()))
+        );
+
+        boolean pageOverFlow = false;
+
+        if(quickResult.content != null){
+            rightCTB.copyContentFrom(quickResult.content);
+            AtomicIncreaseResult lastResult = iterateOnRight(i - 1, currentRightResult, rightCTB.getTop(), rightCTB.newAtomicIteratorFor());
+            if(lastResult.type == ColumnTextBuilder.GrowthResultType.PAGE_OVERFLOW){
+                pageOverFlow = true;
+            }
+        }
+
+        if(i == elements.size()){
+            bestResult
+                .assignIfWorseThan(currentRightResult
+                    .setRightElementSplitHeight(0, 0)
+                    .setRightColumnHeight(rightCTB.getCurrentHeight())
+                    .setElementsAddedCount(i)
+                    .setPageSplit(i, rightCTB.hasMoreText()));
+        }
+
+        if(pageOverFlow) return;
+
         elementsCycle:
-        for (int i = startAt; i < elements.size(); i++) {
+        for (; i < elements.size(); i++) {
             Element el = elements.get(i);
 
             final SplitResult currentResult = currentRightResult;
 
-            currentResult
-                .setRightElementSplitHeight(0)
-                .setRightColumnHeight(rightCTB.getCurrentHeight())
-                .setElementsAddedCount(i)
-                .setPageSplit(true);                    //temporary pessimism
+            setFullAddedElementsStateRight(currentResult, i, rightCTB.getCurrentHeight());
 
-            bestResult.assignIfWorseThan(currentResult);
+            currentResult.setPageSplit(true);                    //temporary pessimism
 
             if (el instanceof SpaceElement) {
                 //todo extract method
@@ -454,37 +524,19 @@ public class BalancedColumnsBuilder {
             } else {
                 float elementTop = rightCTB.getYLine();
 
-                final Iterator<ColumnTextBuilder.AtomicIncreaseResult> iterator = rightCTB.newAtomicIteratorFor(el, workingRectangle);
+                final Iterator<AtomicIncreaseResult> iterator = rightCTB.newAtomicIteratorFor(el);
 
-                //
-                currentResult
-                    .setRightColumnHeight(rightCTB.getCurrentHeight())
-                    .setRightElementSplitHeight(elementTop - rightCTB.getYLine());
+                AtomicIncreaseResult lastResult = iterateOnRight(i, currentResult, elementTop, iterator);
 
-                bestResult.assignIfWorseThan(currentResult);
-
-                cycle: while (iterator.hasNext()) {
-                    ColumnTextBuilder.AtomicIncreaseResult r = iterator.next();
-                    currentResult.setRightColumnHeight(rightCTB.getCurrentHeight());
-
-                    switch (r.type) {
-                        case PAGE_OVERFLOW:
-                            break elementsCycle;
-                        case NORMAL:
-                            currentResult.setRightElementSplitHeight(elementTop - rightCTB.getYLine());
-                            bestResult.assignIfWorseThan(currentResult);
-                            break;
-                        case NO_MORE_CONTENT:
-                            bestResult.assignIfWorseThan(currentResult);
-                            break cycle;
-                    }
+                if(lastResult.type == ColumnTextBuilder.GrowthResultType.PAGE_OVERFLOW){
+                    break;
                 }
             }
 
             //element is fully added here
             currentResult
                 .setRightColumnHeight(rightCTB.getCurrentHeight())
-                .setRightElementSplitHeight(0);
+                .setRightElementSplitHeight(0, 0);
 
             bestResult.assignIfWorseThan(currentResult);
 
@@ -493,6 +545,48 @@ public class BalancedColumnsBuilder {
                 break;
             }
         }
+    }
+
+    private AtomicIncreaseResult iterateOnRight(int currentIndex, SplitResult currentResult, float elementTop, Iterator<AtomicIncreaseResult> iterator) {
+        AtomicIncreaseResult lastIncreaseResult = null;
+
+        currentResult
+            .setRightColumnHeight(rightCTB.getCurrentHeight())
+            .setRightElementSplitHeight(elementTop - rightCTB.getYLine(), sequence.getHeight(currentIndex));
+
+        bestResult.assignIfWorseThan(currentResult);
+
+        cycle: while (iterator.hasNext()) {
+            AtomicIncreaseResult r = iterator.next();
+            currentResult.setRightColumnHeight(rightCTB.getCurrentHeight());
+
+            lastIncreaseResult = r;
+
+            switch (r.type) {
+                case PAGE_OVERFLOW:
+                    break cycle;
+                case NORMAL:
+                    currentResult
+                        .setRightElementSplitHeight(elementTop - rightCTB.getYLine(), sequence.getHeight(currentIndex));
+                    bestResult.assignIfWorseThan(currentResult);
+                    break;
+                case NO_MORE_CONTENT:
+                    setFullAddedElementsStateRight(currentResult, currentIndex + 1, rightCTB.getCurrentHeight());
+
+                    break cycle;
+            }
+        }
+        return lastIncreaseResult == null ? new AtomicIncreaseResult(0, ColumnTextBuilder.GrowthResultType.NO_MORE_CONTENT) : lastIncreaseResult;
+    }
+
+    private void setFullAddedElementsStateRight(SplitResult result, int elementCount, double height) {
+        result
+            .setRightElementSplitHeight(0, 0)
+            .setRightColumnHeight(height)
+            .setElementsAddedCount(elementCount)
+            .setPageSplit(elementCount, false);
+
+        bestResult.assignIfWorseThan(result);
     }
 
     private ColumnTextBuilder setColumn(float height, float horCenter, boolean isLeft, boolean simulate, RectangleBuilder singleColumnRect, ColumnTextBuilder ctb) {
@@ -517,17 +611,28 @@ public class BalancedColumnsBuilder {
     }
 
     private void addSequence(ColumnTextBuilder ctb, boolean simulate) {
-        for (Element el : sequence.getElements()) {
+        List<Element> elements = sequence.getElements();
+
+        float yLine = ctb.getYLine();
+
+        for (int i = 0; i < elements.size(); i++) {
+            Element el = elements.get(i);
+
             if (el instanceof SpaceElement) {
                 SpaceElement space = (SpaceElement) el;
 
                 space.add(ctb, simulate);
-            }else{
+            } else {
                 ctb.addElement(el);
-                if(ColumnText.hasMoreText(ctb.go(simulate))){
+
+                if (ColumnText.hasMoreText(ctb.go(simulate))) {
                     throw new IllegalStateException("element " + el + " does not fit infinite column");
                 }
             }
+
+            sequence.setHeight(i, yLine - ctb.getYLine());
+
+            yLine = ctb.getYLine();
         }
     }
 
