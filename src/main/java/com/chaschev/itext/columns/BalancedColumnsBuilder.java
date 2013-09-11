@@ -69,7 +69,7 @@ public class BalancedColumnsBuilder {
     private final SplitResult currentRightResult = new SplitResult();
     private ColumnTextBuilder leftCTB;
     private ColumnTextBuilder rightCTB;
-    private final SplitResult bestResult = new SplitResult().worstResult();
+    final SplitResult bestResult = new SplitResult().worstResult();
 
     public BalancedColumnsBuilder(Rectangle rectangle, ITextBuilder b) {
         this.origRectangle = new RectangleBuilder().reuse(rectangle);
@@ -204,7 +204,7 @@ public class BalancedColumnsBuilder {
 
             //optimisation mode
             if(quickHeight !=0){
-                for (i = startAtElement; i < elements.size(); i++) {
+                for (i = startAtIndex; i < elements.size(); i++) {
                     Element el = elements.get(i);
 
                     if(currentCtb.fits(el)){
@@ -309,6 +309,24 @@ public class BalancedColumnsBuilder {
                 .setPageSplit(i, quickResult.hasContentLeft(elements.size()))
         );
 
+        boolean pageOverFlow = false;
+
+        if(quickResult.content != null){
+            leftCTB.copyContentFrom(quickResult.content);
+            pageOverFlow = iterateOnLeft(leftCTB.newAtomicIteratorFor(), i - 1, currentLeftResult, leftCTB.getTop());
+        }
+
+        if(i == elements.size()){
+            bestResult
+                .assignIfWorseThan(currentLeftResult
+                    .setLeftElementSplitHeight(0, 0)
+                    .setLeftColumnHeight(leftCTB.getCurrentHeight())
+                    .setElementsAddedCount(i)
+                    .setPageSplit(i, leftCTB.hasMoreText()));
+        }
+
+        if(pageOverFlow) return;
+
         elementsCycle:
         for (; i < elements.size(); i++) {
             Element el = elements.get(i);
@@ -342,33 +360,8 @@ public class BalancedColumnsBuilder {
 
                 final Iterator<AtomicIncreaseResult> iterator = leftCTB.newAtomicIteratorFor(el);
 
-                currentResult
-                    .setLeftColumnHeight(leftCTB.getCurrentHeight())
-                    .setLeftElementSplitHeight(elementTop - leftCTB.getYLine(), sequence.getHeight(i));
-
-                if(currentResult.leftElementSplitHeight > 0){
-                    considerAddingToRight(i + 1, true);
-                }
-
-                while (iterator.hasNext()) {
-                    AtomicIncreaseResult r = iterator.next();
-
-                    currentResult
-                        .setLeftColumnHeight(leftCTB.getCurrentHeight())
-                        .setLeftElementSplitHeight(elementTop - leftCTB.getYLine(), sequence.getHeight(i));
-
-                    switch (r.type) {
-                        case PAGE_OVERFLOW:
-                            break elementsCycle;
-
-                        case NORMAL:
-                            considerAddingToRight(i + 1, true);
-                            break;
-
-                        case NO_MORE_CONTENT:
-                            considerAddingToRight(i + 1, false);
-                            break;
-                    }
+                if (iterateOnLeft(iterator, i, currentResult, elementTop)) {
+                    break elementsCycle;
                 }
 
 //                leftCTB.restoreState();
@@ -408,6 +401,38 @@ public class BalancedColumnsBuilder {
         }
     }
 
+    private boolean iterateOnLeft(Iterator<AtomicIncreaseResult> iterator, int currentIndex, SplitResult currentResult, float elementTop) {
+        currentResult
+            .setLeftColumnHeight(leftCTB.getCurrentHeight())
+            .setLeftElementSplitHeight(elementTop - leftCTB.getYLine(), sequence.getHeight(currentIndex));
+
+        if(currentResult.leftElementSplitHeight > 0){
+            considerAddingToRight(currentIndex + 1, true);
+        }
+
+        while (iterator.hasNext()) {
+            AtomicIncreaseResult r = iterator.next();
+
+            currentResult
+                .setLeftColumnHeight(leftCTB.getCurrentHeight())
+                .setLeftElementSplitHeight(elementTop - leftCTB.getYLine(), sequence.getHeight(currentIndex));
+
+            switch (r.type) {
+                case PAGE_OVERFLOW:
+                    return true;
+
+                case NORMAL:
+                    considerAddingToRight(currentIndex + 1, true);
+                    break;
+
+                case NO_MORE_CONTENT:
+                    considerAddingToRight(currentIndex + 1, false);
+                    break;
+            }
+        }
+        return false;
+    }
+
     private void startWithANewPage(ColumnTextBuilder ctb, int startAt) {
 
     }
@@ -434,7 +459,8 @@ public class BalancedColumnsBuilder {
     }
 
     private void considerAddingToRight(int startAt, boolean hasNotFlushedText) {
-        logger.trace("adding to right, i: {}, leftSplit: {}", startAt, currentLeftResult.leftElementSplitHeight);
+        logger.trace("adding to right, i: {}, leftHeight: {}, leftSplit: {}", startAt, currentLeftResult.leftColumnHeight,
+            currentLeftResult.leftElementSplitHeight);
 
 
         //copy content from the left

@@ -38,6 +38,7 @@ public enum ITextSingleton {
             FontFactory.register(getClass().getResource("/reports/fonts/opensanscond/OpenSans-CondBold.ttf").getPath(), "OpenSansCond");
             FontFactory.register(getClass().getResource("/reports/fonts/opensanscond/OpenSans-CondLight.ttf").getPath(), "OpenSansCondLight");
             FontFactory.register(getClass().getResource("/reports/fonts/opensans/Regular.ttf").getPath(), "OpenSans");
+            FontFactory.register(getClass().getResource("/reports/fonts/opensans/Italic.ttf").getPath(), "OpenSansItalic");
             FontFactory.register(getClass().getResource("/reports/fonts/opensans/Bold.ttf").getPath(), "OpenSansBold");
             FontFactory.register(getClass().getResource("/reports/fonts/opensans/BoldItalic.ttf").getPath(), "OpenSansBoldItalic");
         } catch (Exception e) {

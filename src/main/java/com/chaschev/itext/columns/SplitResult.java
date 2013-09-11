@@ -30,6 +30,9 @@ public class SplitResult {
     double leftElementSplitHeight;
     double rightElementSplitHeight;
 
+    private float leftElementSplitTotalHeight;
+    private float rightElementSplitTotalHeight;
+
     boolean pageSplit;
 
     double score;
@@ -37,6 +40,7 @@ public class SplitResult {
     public int elementsAddedCount;
 
     public int totalElementCount;
+
 
     public SplitResult() {
     }
@@ -53,21 +57,63 @@ public class SplitResult {
     public String toString() {
         final StringBuilder sb = new StringBuilder("SplitResult{");
 
-        sb.append("totalScore=").append(getTotalScore());
-        sb.append(", penalty=").append(getPenalty());
-        sb.append(", score=").append(getScore());
+
+
+        sb.append("totalScore=").append(format(getTotalScore(), 1));
+        sb.append(", penalty=").append(format(getPenalty(), 1));
+        sb.append(", score=").append(format(getScore(), 1));
         sb.append(", leftColumnHeight=").append(leftColumnHeight);
         sb.append(", rightColumnHeight=").append(rightColumnHeight);
-        sb.append(", leftElementSplitHeight=").append(leftElementSplitHeight);
-        sb.append(", rightElementSplitHeight=").append(rightElementSplitHeight);
-        sb.append(", referenceHeight=").append(referenceHeight);
+        sb.append(", leftElementSplitHeight=").append(format(leftElementSplitHeight, 1));
+        sb.append(", rightElementSplitHeight=").append(format(rightElementSplitHeight, 1));
+        sb.append(", referenceHeight=").append(format(referenceHeight, 1));
         sb.append(", rectHeight=").append(rectHeight);
         sb.append(", pageSplit=").append(pageSplit);
         sb.append(", score=").append(score);
         sb.append(", elementsAddedCount=").append(elementsAddedCount);
+        sb.append(",\n              penalties=").append(debugPenalties());
         sb.append('}');
 
         return sb.toString();
+    }
+
+
+    public static final long[] pows10;
+
+    static {
+        pows10 = new long[17];
+        pows10[0] = 1;
+        for (int i = 1; i < pows10.length; i++) {
+            pows10[i] = 10 * pows10[i-1];
+        }
+    }
+
+
+    //todo move to chutis
+    private static String format(double totalScore, int precision) {
+        final long l = (long) totalScore;
+        return l + "." + Math.abs((long) ((totalScore - l) * pows10[precision]));
+    }
+
+    public String debugPenalties(){
+        return String.format(
+            "rightNotUsed=%s, " +
+            "bigLeft=%s, " +
+            "bigRight=%s, " +
+            "imbalance=%s, " +
+            "smallBalance=%s, " +
+            "leftSplit=%s, " +
+            "rightSplit=%s, " +
+            "pageSplit=%s",
+            format(rightNotUsedPenalty(), 1),
+            format(tooBigColumnPenalty(leftColumnHeight), 1),
+            format(tooBigColumnPenalty(rightColumnHeight), 1),
+            format(columnBalancePenalty(), 1),
+            format(smallBalancePenalty(), 1),
+            format(leftSplitPenalty(), 1),
+            format(rightSplitPenalty(), 1),
+            format(pageSplitPenalty(), 1)
+        );
     }
 
     public double getPenalty() {
@@ -75,27 +121,85 @@ public class SplitResult {
             rightNotUsedPenalty() +
                 tooBigColumnPenalty(leftColumnHeight) + tooBigColumnPenalty(rightColumnHeight)
                 + columnBalancePenalty()
+                + smallBalancePenalty()
                 + leftSplitPenalty()
                 + rightSplitPenalty()
                 + pageSplitPenalty();
     }
 
-    private double columnBalancePenalty() {
-        final double v = Math.abs(rightColumnHeight - leftColumnHeight);
+    /**
+     * Small items should not be balanced;
+     */
+    private double smallBalancePenalty() {
+        double v = (rightColumnHeight + leftColumnHeight) -
+            Math.abs(rightColumnHeight - leftColumnHeight);
 
-        if(leftColumnHeight > rightColumnHeight){
-            return v * 0.8;
+        if(referenceHeight < 11.0 * 3){
+            v *= 1.5;
+        }else
+        if(referenceHeight < 11.0 * 5){
+            v *= 1.2;
+        }else
+        if(referenceHeight < 11.0 * 8){
+            v *= 0.6;
+        }else
+        if(referenceHeight < 11.0 * 12){
+            v *= 0.3;
         }else{
-            return v;
+            v = 0;
         }
+
+        return v;
     }
 
-    private double rightSplitPenalty() {
-        return rightElementSplitHeight;
+    private double columnBalancePenalty() {
+        double v = Math.abs(rightColumnHeight - leftColumnHeight);
+
+        if(leftColumnHeight > rightColumnHeight){
+            v *= 0.8;
+        }
+
+        if(referenceHeight < 11.0 * 3){
+            v *= 0.1;
+        }else
+        if(referenceHeight < 11.0 * 5){
+            v *= 0.3;
+        }else
+        if(referenceHeight < 11.0 * 8){
+            v *= 0.6;
+        }else
+        if(referenceHeight < 11.0 * 12){
+            v *= 0.8;
+        }
+
+        return v;
     }
 
     private double leftSplitPenalty() {
-        return leftElementSplitHeight;
+        return splitPenalty(leftElementSplitHeight, leftColumnHeight);
+    }
+
+    private double rightSplitPenalty() {
+        return splitPenalty(rightElementSplitHeight, rightColumnHeight);
+    }
+
+    private static double splitPenalty(double splitH, double columnH) {
+//        return Math.abs(splitH) < 0.01 ? 0 :
+//            Math.abs(columnH /2 - splitH) * 2;
+
+        double v = Math.abs(splitH) < 0.01 ? 0 :
+            (columnH / splitH * 5);
+
+        if (splitH <= 11.0 * 1.5) {
+            v *= 3.0;
+        } else if (splitH <= 11.0 * 2.5) {
+            v *= 2.0;
+        }
+        if (splitH <= 11.0 * 3.5) {
+            v *= 1.5;
+        }
+
+        return v;
     }
 
     private double rightNotUsedPenalty() {
@@ -154,26 +258,15 @@ public class SplitResult {
     }
 
     public SplitResult setLeftElementSplitHeight(double leftElementSplitHeight, float elementHeight) {
-        if(Math.abs(leftElementSplitHeight) < 0.001){
-            this.leftElementSplitHeight = 0;
-        } else {
-            this.leftElementSplitHeight =
-                Math.min(leftElementSplitHeight, elementHeight - leftElementSplitHeight);
+        this.leftElementSplitHeight = getSplitHeight(leftElementSplitHeight, elementHeight);
+        this.leftElementSplitTotalHeight = elementHeight;
 
-            pageSplit = true;
-        }
         return this;
     }
 
     public SplitResult setRightElementSplitHeight(double rightElementSplitHeight, float elementHeight) {
-        if(Math.abs(rightElementSplitHeight) < 0.001){
-            this.rightElementSplitHeight = 0;
-        }else{
-            this.rightElementSplitHeight =
-                Math.min(rightElementSplitHeight, elementHeight - rightElementSplitHeight);
-
-            pageSplit = true;
-        }
+        this.rightElementSplitHeight =  getSplitHeight(rightElementSplitHeight, elementHeight);
+        this.rightElementSplitTotalHeight = elementHeight;
         return this;
     }
 
@@ -192,8 +285,13 @@ public class SplitResult {
     }
 
     public void assignIfWorseThan(SplitResult result) {
+        if(BalancedColumnsBuilder.logger.isTraceEnabled()){
+            if(!result.pageSplit){
+                BalancedColumnsBuilder.logger.trace("comparing to: \n  {}", result);
+            }
+        }
         if(getTotalScore() < result.getTotalScore()){
-            BalancedColumnsBuilder.logger.trace("better score: {}", result);
+            BalancedColumnsBuilder.logger.trace("better score: \n  {}", result);
             copyFrom(result);
         }
     }
@@ -221,4 +319,18 @@ public class SplitResult {
 
         return this;
     }
+
+    private double getSplitHeight(double leftElementSplitHeight, float elementHeight) {
+        final double height ;
+        if(Math.abs(leftElementSplitHeight) < 0.001){
+            height = 0;
+        } else {
+            height = Math.min(leftElementSplitHeight, elementHeight - leftElementSplitHeight);
+
+            pageSplit = true;
+        }
+        return height;
+    }
+
+
 }
