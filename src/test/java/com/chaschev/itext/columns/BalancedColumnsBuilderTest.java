@@ -270,11 +270,15 @@ public class BalancedColumnsBuilderTest {
         twoPhrasesTest(2, 4, 2, 4);
     }
 
-@Test
+    @Test
     public void testList_TwoElements_Balance1() throws Exception {
         twoPhrasesTest(2, 4, 2, 4, ContentType.LIST);
     }
 
+    @Test
+    public void testTable_TwoElements_Balance1() throws Exception {
+        twoPhrasesTest(2, 4, 2, 4, ContentType.TABLE);
+    }
 
     @Test
     public void testSimpleText_TwoElements_Balance2() throws Exception {
@@ -284,6 +288,11 @@ public class BalancedColumnsBuilderTest {
     @Test
     public void testList_TwoElements_Balance2() throws Exception {
         twoPhrasesTest(2, 7, 5, 4, ContentType.LIST);
+    }
+
+    @Test
+    public void testTable_TwoElements_Balance2() throws Exception {
+        twoPhrasesTest(2, 7, 5, 4, ContentType.TABLE);
     }
 
     @Test
@@ -297,6 +306,11 @@ public class BalancedColumnsBuilderTest {
     }
 
     @Test
+    public void testTable_TwoElements_Balance3() throws Exception {
+        twoPhrasesTest(2, 6, 5, 3, ContentType.TABLE);
+    }
+
+    @Test
     public void testSimpleText_TwoElements_Balance4() throws Exception {
         twoPhrasesTest(7, 15, 11, 11);
     }
@@ -304,6 +318,11 @@ public class BalancedColumnsBuilderTest {
     @Test
     public void testList_TwoElements_Balance4() throws Exception {
         twoPhrasesTest(7, 15, 11, 11, ContentType.LIST);
+    }
+
+    @Test
+    public void testTable_TwoElements_Balance4() throws Exception {
+        twoPhrasesTest(7, 15, 11, 11, ContentType.TABLE);
     }
 
     @Test
@@ -317,6 +336,11 @@ public class BalancedColumnsBuilderTest {
     }
 
     @Test
+    public void testTable_TwoElements_Balance5() throws Exception {
+        twoPhrasesTest(3, 6, 6, 3, ContentType.TABLE);
+    }
+
+    @Test
     public void testSimpleText_TwoElements_SmallImbalance1() throws Exception {
         twoPhrasesTest(6, 9, 6, 9);
     }
@@ -326,9 +350,20 @@ public class BalancedColumnsBuilderTest {
     }
 
     @Test
+    public void testTable_TwoElements_SmallImbalance1() throws Exception {
+        twoPhrasesTest(6, 9, 6, 9, ContentType.TABLE);
+    }
+
+    @Test
     public void testList_TwoElements_SmallImbalance2() throws Exception {
         twoPhrasesTest(6, 12, 9, 9, ContentType.LIST);
     }
+
+    @Test
+    public void testTable_TwoElements_SmallImbalance2() throws Exception {
+        twoPhrasesTest(6, 12, 9, 9, ContentType.TABLE);
+    }
+
     @Test
     public void testSimpleText_TwoElements_SmallImbalance2() throws Exception {
         twoPhrasesTest(6, 12, 9, 9);
@@ -342,6 +377,11 @@ public class BalancedColumnsBuilderTest {
     @Test
     public void testList_TwoElements_SmallImbalance3() throws Exception {
         twoPhrasesTest(6, 15, 11, 10, ContentType.LIST);
+    }
+
+    @Test
+    public void testTable_TwoElements_SmallImbalance3() throws Exception {
+        twoPhrasesTest(6, 15, 11, 10, ContentType.TABLE);
     }
 
     @Test
@@ -388,10 +428,10 @@ public class BalancedColumnsBuilderTest {
     public PdfPTable testTable(int listIndex, int lineCount) {
         final TableBuilder table = b.newTableBuilder(1);
 
-        table.cell(b.phrase("List " + listIndex + " - line 1/" + lineCount).build());
+        table.addCell(b.phrase("List " + listIndex + " - line 1/" + lineCount).build());
 
         for (int i = 0; i < lineCount - 1; i++) {
-            table.cell(b.phrase("line " + (i + 2)).build());
+            table.addCell(b.phrase("line " + (i + 2)).build());
         }
 
         return table.build();
@@ -470,8 +510,10 @@ public class BalancedColumnsBuilderTest {
 
         int max = Math.max(expectedOnLeft, expectedOnRight);
 
-        Assertions.assertThat((float) builder.bestResult.getLeftColumnHeight()).describedAs("left column height").is(equalToAnyOf(0.1f, max * 11f, expectedOnLeft * 11f));
-        Assertions.assertThat((float) builder.bestResult.getRightColumnHeight()).describedAs("right column height").is(equalToAnyOf(0.1f, max * 11f, expectedOnRight * 11f));
+        final float lineHeight = type == ContentType.TABLE ? 13f:11f;
+
+        Assertions.assertThat((float) builder.bestResult.getLeftColumnHeight()).describedAs("left column height").is(equalToAnyOf(0.1f, max * lineHeight, expectedOnLeft * lineHeight));
+        Assertions.assertThat((float) builder.bestResult.getRightColumnHeight()).describedAs("right column height").is(equalToAnyOf(0.1f, max * lineHeight, expectedOnRight * lineHeight));
     }
 
     private void expectations(String title, BalancedColumnsBuilder builder, int expectedOnLeft, int expectedOnRight) {

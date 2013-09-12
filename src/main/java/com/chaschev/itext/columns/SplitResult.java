@@ -287,9 +287,9 @@ public class SplitResult {
 
     public void assignIfWorseThan(SplitResult result) {
         if(BalancedColumnsBuilder.logger.isTraceEnabled()){
-//            if(!result.pageSplit){
+            if(!result.pageSplit){
                 BalancedColumnsBuilder.logger.trace("comparing to: \n  {}", result);
-//            }
+            }
         }
         if(getTotalScore() < result.getTotalScore()){
             BalancedColumnsBuilder.logger.trace("better score: \n  {}", result);

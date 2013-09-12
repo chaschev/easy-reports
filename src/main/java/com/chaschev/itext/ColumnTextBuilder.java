@@ -21,14 +21,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Iterators;
 import com.itextpdf.text.*;
-import com.itextpdf.text.pdf.BaseFont;
-import com.itextpdf.text.pdf.BidiLine;
-import com.itextpdf.text.pdf.ColumnText;
-import com.itextpdf.text.pdf.PdfContentByte;
+import com.itextpdf.text.pdf.*;
 import com.itextpdf.text.pdf.interfaces.IAccessibleElement;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -600,6 +598,22 @@ public class ColumnTextBuilder {
 
             if(item != null){
                 lineHeight = item.getTotalLeading();
+            }
+
+            growStrategy = new SimpleGrowStrategy(lineHeight);
+        }else
+        if (element instanceof PdfPTable) {
+            PdfPTable table = (PdfPTable) element;
+
+            float lineHeight = Float.MAX_VALUE;
+
+            ArrayList<PdfPRow> rows = table.getRows();
+            for (int i = 0; i < rows.size(); i++) {
+                lineHeight = Math.min(lineHeight, table.getRowHeight(i));
+            }
+
+            if(lineHeight == Float.MAX_VALUE){
+                lineHeight = 10f;
             }
 
             growStrategy = new SimpleGrowStrategy(lineHeight);
