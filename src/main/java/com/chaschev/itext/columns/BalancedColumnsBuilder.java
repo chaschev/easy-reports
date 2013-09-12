@@ -234,9 +234,15 @@ public class BalancedColumnsBuilder {
                     Element el = elements.get(i);
 
                     if(currentCtb.fits(el)){
-                        currentCtb
-                            .addElement(el)
-                            .go(simulate);
+                        if (el instanceof SpaceElement) {
+                            SpaceElement spaceElement = (SpaceElement) el;
+                            spaceElement.add(currentCtb, simulate);
+                            currentCtb.go(simulate);
+                        }else{
+                            currentCtb
+                                .addElement(el)
+                                .go(simulate);
+                        }
                     }else{
                         break;
                     }
@@ -373,6 +379,10 @@ public class BalancedColumnsBuilder {
 
             if (el instanceof SpaceElement) {
                 SpaceElement space = (SpaceElement) el;
+
+                currentResult.setElementsAddedCount(i);
+
+                considerAddingToRight(i + 1, false);
 
                 if (space.fits(leftCTB, origRectangle.getBottom())) {
                     space.add(leftCTB, true);
@@ -587,6 +597,12 @@ public class BalancedColumnsBuilder {
             if (el instanceof SpaceElement) {
                 //todo extract method
                 SpaceElement space = (SpaceElement) el;
+
+                bestResult.assignIfWorseThan(
+                    currentResult
+                        .setElementsAddedCount(i)
+                        .setPageSplit(i, false));
+
 
                 if (space.fits(rightCTB, origRectangle.getBottom())) {
                     space.add(rightCTB, true);

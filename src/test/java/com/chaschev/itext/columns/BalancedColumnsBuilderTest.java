@@ -398,6 +398,20 @@ public class BalancedColumnsBuilderTest {
         }
     }
 
+    @Test
+    public void tempSpace() throws Exception {
+        twoPhrasesAndSpace(11, 10, newRectangle());
+    }
+
+    @Test
+    public void testSimpleText_TwoElements_Space() throws Exception {
+        for (int i = 8; i < 18; i++) {
+            for (int j = 3; j < 18; j++) {
+                twoPhrasesAndSpace(i, j, newRectangle());
+            }
+        }
+    }
+
     public static String testPhrase(int phraseIndex, int lineCount) {
         StringBuilder sb = new StringBuilder(512);
 
@@ -494,6 +508,24 @@ public class BalancedColumnsBuilderTest {
         builder.go();
 
         b.close().saveToFile(new File(String.format("output/BalancedSimpleText/PageBreak/TwoElements_h_%03.0f_%02d_%02d.pdf", rectangle.getTop(), lineCount1, lineCount2)));
+
+    }
+
+    private void twoPhrasesAndSpace(
+        int lineCount1, int lineCount2, Rectangle rectangle) {
+        ITextBuilder b = createTestBuilder();
+
+        final BalancedColumnsBuilder builder = new BalancedColumnsBuilder(rectangle, b);
+
+        builder.add(
+            b.phrase(testPhrase(1, lineCount1), "normal").build(),
+            new SpaceElement(11f),
+            b.phrase(testPhrase(2, lineCount2), "normal").build()
+        );
+
+        builder.go();
+
+        b.close().saveToFile(new File(String.format("output/BalancedSimpleText/Space/TwoElements_h_%03.0f_%02d_%02d.pdf", rectangle.getTop(), lineCount1, lineCount2)));
 
     }
 

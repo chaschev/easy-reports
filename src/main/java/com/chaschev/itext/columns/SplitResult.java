@@ -47,7 +47,7 @@ public class SplitResult {
 
     double getScore(){
         return score + 20 * elementsAddedCount
-            + (leftColumnHeight + rightColumnHeight) * 0.8;
+            + (leftColumnHeight + rightColumnHeight) * 0.6;
     }
 
     double getTotalScore(){
