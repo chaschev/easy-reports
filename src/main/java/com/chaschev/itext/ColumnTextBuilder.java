@@ -590,7 +590,21 @@ public class ColumnTextBuilder {
             final float approxHeight = phrase.getTotalLeading();
 
             growStrategy = new SimpleGrowStrategy(approxHeight);
-        }else{
+        }else
+        if (element instanceof com.itextpdf.text.List) {
+            com.itextpdf.text.List list = (com.itextpdf.text.List) element;
+
+            float lineHeight = 10f;
+
+            final ListItem item = list.getFirstItem();
+
+            if(item != null){
+                lineHeight = item.getTotalLeading();
+            }
+
+            growStrategy = new SimpleGrowStrategy(lineHeight);
+        }else
+        {
             throw new UnsupportedOperationException("todo: support element: " + element.getClass().getSimpleName());
         }
 
@@ -606,10 +620,10 @@ public class ColumnTextBuilder {
         float smallStep;
         float bigStep;
 
-        public SimpleGrowStrategy(double approxHeight) {
-            this.approxHeight = approxHeight;
-            smallStep = (float) (approxHeight / 5);
-            bigStep = (float) (approxHeight * 0.8);
+        public SimpleGrowStrategy(double approxMinLineHeight) {
+            this.approxHeight = approxMinLineHeight;
+            smallStep = (float) (approxMinLineHeight / 5);
+            bigStep = (float) (approxMinLineHeight * 0.8);
         }
 
         @Override

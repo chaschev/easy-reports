@@ -16,17 +16,16 @@
 
 package com.chaschev.itext.columns;
 
-import com.chaschev.itext.ChunkBuilder;
-import com.chaschev.itext.ITextBuilder;
-import com.chaschev.itext.ITextSingleton;
-import com.chaschev.itext.Style;
+import com.chaschev.itext.*;
 import com.itextpdf.text.*;
 import com.itextpdf.text.pdf.BaseFont;
 import com.itextpdf.text.pdf.ColumnText;
+import com.itextpdf.text.pdf.PdfPTable;
 import gnu.trove.list.array.TFloatArrayList;
 import org.fest.assertions.api.Assertions;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -193,6 +192,21 @@ public class BalancedColumnsBuilderTest {
     }
 
     @Test
+    public void testSimpleText_List1() throws Exception {
+        final BalancedColumnsBuilder builder = new BalancedColumnsBuilder(newRectangle(), b);
+
+        builder.add(
+            b.phrase("Test Phrase 1", "normal").build(),
+            b.phrase("Test Phrase 2", "normal").build()
+        );
+
+        builder.go();
+
+        expectations("TwoElements2", builder, 2, 0);
+    }
+
+
+    @Test
     public void testSimpleText_ThreeElements() throws Exception {
         final BalancedColumnsBuilder builder = new BalancedColumnsBuilder(newRectangle(), b);
 
@@ -256,10 +270,20 @@ public class BalancedColumnsBuilderTest {
         twoPhrasesTest(2, 4, 2, 4);
     }
 
+@Test
+    public void testList_TwoElements_Balance1() throws Exception {
+        twoPhrasesTest(2, 4, 2, 4, ContentType.LIST);
+    }
+
 
     @Test
     public void testSimpleText_TwoElements_Balance2() throws Exception {
         twoPhrasesTest(2, 7, 5, 4);
+    }
+
+    @Test
+    public void testList_TwoElements_Balance2() throws Exception {
+        twoPhrasesTest(2, 7, 5, 4, ContentType.LIST);
     }
 
     @Test
@@ -268,8 +292,18 @@ public class BalancedColumnsBuilderTest {
     }
 
     @Test
+    public void testList_TwoElements_Balance3() throws Exception {
+        twoPhrasesTest(2, 6, 5, 3, ContentType.LIST);
+    }
+
+    @Test
     public void testSimpleText_TwoElements_Balance4() throws Exception {
         twoPhrasesTest(7, 15, 11, 11);
+    }
+
+    @Test
+    public void testList_TwoElements_Balance4() throws Exception {
+        twoPhrasesTest(7, 15, 11, 11, ContentType.LIST);
     }
 
     @Test
@@ -278,10 +312,23 @@ public class BalancedColumnsBuilderTest {
     }
 
     @Test
+    public void testList_TwoElements_Balance5() throws Exception {
+        twoPhrasesTest(3, 6, 6, 3, ContentType.LIST);
+    }
+
+    @Test
     public void testSimpleText_TwoElements_SmallImbalance1() throws Exception {
         twoPhrasesTest(6, 9, 6, 9);
     }
+    @Test
+    public void testList_TwoElements_SmallImbalance1() throws Exception {
+        twoPhrasesTest(6, 9, 6, 9, ContentType.LIST);
+    }
 
+    @Test
+    public void testList_TwoElements_SmallImbalance2() throws Exception {
+        twoPhrasesTest(6, 12, 9, 9, ContentType.LIST);
+    }
     @Test
     public void testSimpleText_TwoElements_SmallImbalance2() throws Exception {
         twoPhrasesTest(6, 12, 9, 9);
@@ -293,11 +340,16 @@ public class BalancedColumnsBuilderTest {
     }
 
     @Test
+    public void testList_TwoElements_SmallImbalance3() throws Exception {
+        twoPhrasesTest(6, 15, 11, 10, ContentType.LIST);
+    }
+
+    @Test
     public void temp_PageBreak1() throws Exception {
         twoPhrasesTestPageBreak(7, 10, newBottomRectangle(120));
     }
 
-    @Test
+    @Ignore
     public void testSimpleText_TwoElements_PageBreak1() throws Exception {
         for(int i = 8;i<18;i++){
             for(int j = 1;j<18;j++){
@@ -318,21 +370,74 @@ public class BalancedColumnsBuilderTest {
         return sb.toString();
     }
 
+    public List testList(int listIndex, int lineCount) {
+        List list = new List(List.ORDERED, List.NUMERICAL);
+
+        list.setPostSymbol(". ");
+        list.setListSymbol(b.chunk("- ", "normal").build());
+
+        list.add(new ListItem(b.phrase("List " + listIndex + " - line 1/" + lineCount).build()));
+
+        for (int i = 0; i < lineCount - 1; i++) {
+            list.add(new ListItem(b.phrase("line " + (i+2)).build()));
+        }
+
+        return list;
+    }
+
+    public PdfPTable testTable(int listIndex, int lineCount) {
+        final TableBuilder table = b.newTableBuilder(1);
+
+        table.cell(b.phrase("List " + listIndex + " - line 1/" + lineCount).build());
+
+        for (int i = 0; i < lineCount - 1; i++) {
+            table.cell(b.phrase("line " + (i + 2)).build());
+        }
+
+        return table.build();
+    }
+
     private void twoPhrasesTest(int lineCount1, int lineCount2, int expectedOnLeft, int expectedOnRight) {
         twoPhrasesTest(lineCount1, lineCount2, expectedOnLeft, expectedOnRight, newRectangle());
     }
 
+    enum ContentType{
+        PHRASE, LIST, TABLE
+    }
+
     private void twoPhrasesTest(int lineCount1, int lineCount2, int expectedOnLeft, int expectedOnRight, Rectangle rectangle) {
+        twoPhrasesTest(lineCount1, lineCount2, expectedOnLeft, expectedOnRight, rectangle, ContentType.PHRASE);
+    }
+
+    private void twoPhrasesTest(int lineCount1, int lineCount2, int expectedOnLeft, int expectedOnRight, ContentType type) {
+        twoPhrasesTest(lineCount1, lineCount2, expectedOnLeft, expectedOnRight, newRectangle(), type);
+    }
+
+    private void twoPhrasesTest(int lineCount1, int lineCount2, int expectedOnLeft, int expectedOnRight, Rectangle rectangle, ContentType type) {
+
         final BalancedColumnsBuilder builder = new BalancedColumnsBuilder(rectangle, b);
 
-        builder.add(
-            b.phrase(testPhrase(1, lineCount1), "normal").build(),
-            b.phrase(testPhrase(2, lineCount2), "normal").build()
-        );
+        switch (type) {
+            case PHRASE:
+                builder.add(
+                    b.phrase(testPhrase(1, lineCount1), "normal").build(),
+                    b.phrase(testPhrase(2, lineCount2), "normal").build()
+                );
+
+                break;
+            case LIST:
+                builder.add(testList(1, lineCount1), testList(2, lineCount2));
+
+                break;
+            case TABLE:
+                builder.add(testTable(1, lineCount1), testTable(2, lineCount2));
+
+                break;
+        }
 
         builder.go();
 
-        twoElementsExpectations(builder, expectedOnLeft, expectedOnRight, lineCount1, lineCount2);
+        twoElementsExpectations(builder, expectedOnLeft, expectedOnRight, lineCount1, lineCount2, type);
     }
 
     private void twoPhrasesTestPageBreak(
@@ -352,14 +457,19 @@ public class BalancedColumnsBuilderTest {
 
     }
 
-    private void twoElementsExpectations(BalancedColumnsBuilder builder, int expectedOnLeft, int expectedOnRight, int lineCount1, int lineCount2) {
+    private void twoElementsExpectations(BalancedColumnsBuilder builder, int expectedOnLeft, int expectedOnRight, int lineCount1, int lineCount2, ContentType type) {
         showComment("Expected: " + expectedOnLeft +
             " lines on the left, " + expectedOnRight +
             " lines on the right.");
 
-        b.close().saveToFile(new File(String.format("output/BalancedSimpleText/TwoElements_%02d_%02d.pdf", lineCount1, lineCount2)));
+        final String s = type.toString().toLowerCase();
+
+        b.close().saveToFile(new File(String.format("output/BalancedSimpleText/TwoElements%s/%02d_%02d.pdf",
+            s.substring(0,1).toUpperCase() + s.substring(1),
+            lineCount1, lineCount2)));
 
         int max = Math.max(expectedOnLeft, expectedOnRight);
+
         Assertions.assertThat((float) builder.bestResult.getLeftColumnHeight()).describedAs("left column height").is(equalToAnyOf(0.1f, max * 11f, expectedOnLeft * 11f));
         Assertions.assertThat((float) builder.bestResult.getRightColumnHeight()).describedAs("right column height").is(equalToAnyOf(0.1f, max * 11f, expectedOnRight * 11f));
     }
