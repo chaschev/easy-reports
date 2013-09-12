@@ -22,6 +22,7 @@ import com.itextpdf.text.pdf.BaseFont;
 import com.itextpdf.text.pdf.ColumnText;
 import com.itextpdf.text.pdf.PdfPTable;
 import gnu.trove.list.array.TFloatArrayList;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.fest.assertions.api.Assertions;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -29,6 +30,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
+import java.util.Random;
 
 /**
  * User: chaschev
@@ -390,10 +392,41 @@ public class BalancedColumnsBuilderTest {
     }
 
     @Ignore
+    @Test
     public void testSimpleText_TwoElements_PageBreak1() throws Exception {
         for(int i = 8;i<18;i++){
             for(int j = 1;j<18;j++){
                 twoPhrasesTestPageBreak(i, j, newBottomRectangle(120));
+            }
+        }
+    }
+
+    @Test
+    @Ignore
+    public void multi_TwoTitledLists() throws Exception {
+        for(int i = 3;i<18;i++){
+            for(int j = 3;j<18;j++){
+                twoTitledListsAndSpace(i,j, newRectangle());
+            }
+        }
+    }
+
+    @Test
+    @Ignore
+    public void multi_TwoTitledManualLists2() throws Exception {
+        for(int i = 3;i<18;i++){
+            for(int j = 3;j<18;j++){
+                twoTitledManualListsAndSpace(i, j, newRectangle());
+            }
+        }
+    }
+
+    @Test
+    @Ignore
+    public void multi_TwoTitledManualListsPageBreak() throws Exception {
+        for(int i = 3;i<18;i++){
+            for(int j = 3;j<18;j++){
+                twoTitledManualListsAndSpace(i, j, newBottomRectangle(120));
             }
         }
     }
@@ -404,10 +437,31 @@ public class BalancedColumnsBuilderTest {
     }
 
     @Test
-    public void testSimpleText_TwoElements_Space() throws Exception {
+    @Ignore
+    public void multi_TwoElements_Space() throws Exception {
         for (int i = 8; i < 18; i++) {
             for (int j = 3; j < 18; j++) {
                 twoPhrasesAndSpace(i, j, newRectangle());
+            }
+        }
+    }
+
+    @Test
+    @Ignore
+    public void multi_TwoLists_Space() throws Exception {
+        for (int i = 3; i < 18; i++) {
+            for (int j = 3; j < 18; j++) {
+                twoListsAndSpace(i, j, newRectangle());
+            }
+        }
+    }
+
+    @Test
+    @Ignore
+    public void multi_TwoTitledElements_Space() throws Exception {
+        for (int i = 3; i < 15; i++) {
+            for (int j = 5; j < 18; j++) {
+                twoTitledPhrasesAndSpace(i,j,newRectangle());
             }
         }
     }
@@ -424,19 +478,80 @@ public class BalancedColumnsBuilderTest {
         return sb.toString();
     }
 
-    public List testList(int listIndex, int lineCount) {
+    public List newTestList(int listIndex, int lineCount) {
         List list = new List(List.ORDERED, List.NUMERICAL);
 
         list.setPostSymbol(". ");
         list.setListSymbol(b.chunk("- ", "normal").build());
 
-        list.add(new ListItem(b.phrase("List " + listIndex + " - line 1/" + lineCount).build()));
+        list.add(new ListItem(b.phrase("List " + listIndex + " - line 1/" + lineCount, "subHeader").build()));
 
         for (int i = 0; i < lineCount - 1; i++) {
             list.add(new ListItem(b.phrase("line " + (i+2)).build()));
         }
 
         return list;
+    }
+
+    public List newTitledTestList(int listIndex, int lineCount) {
+        List list = new List(false, false);
+
+        list.setPostSymbol(". ");
+        list.setListSymbol(b.chunk("- ", "normal").build());
+
+        final ListItem subHeader = new ListItem(b.phrase("List " + listIndex + " Title (" + lineCount + " lines)\n\n", "subHeader").build());
+        subHeader.setListSymbol(new Chunk(""));
+
+        list.add(subHeader);
+
+        final Random random = new Random(2);
+
+        for (int i = 0; i < lineCount; i++) {
+            final ListItem item = new ListItem(b.phrase("line " + (i + 1) + " " + RandomStringUtils.random(14+random.nextInt(50), "alsd fjasd df we asdf oiru")).build());
+//            final ListItem item = new ListItem(b.phrase("line " + (i + 1) + " " + RandomStringUtils.random(14+random.nextInt(50), "alsd fjasd df we asdf oiru")).build());
+            item.setListSymbol(b.chunk((i + 1)+". ").build());
+            item.setIndentationLeft(0, true);
+            list.add(item);
+        }
+
+        return list;
+    }
+
+    public List newTestListNoHeader(int lineCount) {
+        List list = new List(List.ORDERED, List.NUMERICAL);
+
+        list.setPostSymbol(". ");
+        list.setListSymbol(b.chunk("- ", "normal").build());
+
+        for (int i = 0; i < lineCount ; i++) {
+            list.add(new ListItem(b.phrase("line " + (i+1)).build()));
+        }
+
+        return list;
+    }
+
+    public PdfPTable newTitledList(int listIndex, int lineCount) {
+        final TableBuilder table = b.newTableBuilder(20, 100);
+
+        table.setLockedWidth(true)
+            .setTotalWidth(95)
+            .addCell(table.cell(b.phrase("List " + listIndex + " \n title", "header").build()).setColspan(2).build());
+
+        table
+            .addCell(b.phrase("1.", "normal").build())
+            .addCell(b.phrase("List " + listIndex + " - line 1/" + lineCount, "normal").build());
+
+        for (int i = 0; i < lineCount - 1; i++) {
+            table
+                .addCell(b.phrase((i + 2) + ".", "normal").build())
+                .addCell(b.phrase("line " + (i + 1), "normal").build());
+        }
+
+        table.getRow(0).setMayNotBreak(true);
+        table.getRow(1).setMayNotBreak(true);
+
+        return table.build();
+
     }
 
     public PdfPTable testTable(int listIndex, int lineCount) {
@@ -468,6 +583,7 @@ public class BalancedColumnsBuilderTest {
     }
 
     private void twoPhrasesTest(int lineCount1, int lineCount2, int expectedOnLeft, int expectedOnRight, Rectangle rectangle, ContentType type) {
+        ITextBuilder b = createTestBuilder();
 
         final BalancedColumnsBuilder builder = new BalancedColumnsBuilder(rectangle, b);
 
@@ -480,7 +596,7 @@ public class BalancedColumnsBuilderTest {
 
                 break;
             case LIST:
-                builder.add(testList(1, lineCount1), testList(2, lineCount2));
+                builder.add(newTestList(1, lineCount1), newTestList(2, lineCount2));
 
                 break;
             case TABLE:
@@ -491,7 +607,7 @@ public class BalancedColumnsBuilderTest {
 
         builder.go();
 
-        twoElementsExpectations(builder, expectedOnLeft, expectedOnRight, lineCount1, lineCount2, type);
+        twoElementsExpectations(b, builder, expectedOnLeft, expectedOnRight, lineCount1, lineCount2, type);
     }
 
     private void twoPhrasesTestPageBreak(
@@ -508,7 +624,23 @@ public class BalancedColumnsBuilderTest {
         builder.go();
 
         b.close().saveToFile(new File(String.format("output/BalancedSimpleText/PageBreak/TwoElements_h_%03.0f_%02d_%02d.pdf", rectangle.getTop(), lineCount1, lineCount2)));
+    }
 
+    private void twoTitledPhrasesAndSpace(
+        int lineCount1, int lineCount2, Rectangle rectangle) {
+        ITextBuilder b = createTestBuilder();
+
+        final BalancedColumnsBuilder builder = new BalancedColumnsBuilder(rectangle, b);
+
+        builder.add(
+            newTitledList(1, lineCount1),
+            new SpaceElement(11f),
+            newTitledList(2, lineCount2)
+        );
+
+        builder.go();
+
+        b.close().saveToFile(new File(String.format("output/BalancedSimpleText/TitledListAndSpace/TwoElements_h_%03.0f_%02d_%02d.pdf", rectangle.getTop(), lineCount1, lineCount2)));
     }
 
     private void twoPhrasesAndSpace(
@@ -526,10 +658,65 @@ public class BalancedColumnsBuilderTest {
         builder.go();
 
         b.close().saveToFile(new File(String.format("output/BalancedSimpleText/Space/TwoElements_h_%03.0f_%02d_%02d.pdf", rectangle.getTop(), lineCount1, lineCount2)));
+    }
+
+    private void twoListsAndSpace(
+        int lineCount1, int lineCount2, Rectangle rectangle) {
+        ITextBuilder b = createTestBuilder();
+
+        final BalancedColumnsBuilder builder = new BalancedColumnsBuilder(rectangle, b);
+
+        builder.add(
+            newTestList(1, lineCount1),
+            new SpaceElement(11f),
+            newTestList(2, lineCount2)
+        );
+
+        builder.go();
+
+        b.close().saveToFile(new File(String.format("output/BalancedSimpleText/ListsAndSpace/TwoElements_h_%03.0f_%02d_%02d.pdf", rectangle.getTop(), lineCount1, lineCount2)));
 
     }
 
-    private void twoElementsExpectations(BalancedColumnsBuilder builder, int expectedOnLeft, int expectedOnRight, int lineCount1, int lineCount2, ContentType type) {
+    private void twoTitledListsAndSpace(
+        int lineCount1, int lineCount2, Rectangle rectangle) {
+        ITextBuilder b = createTestBuilder();
+
+        final BalancedColumnsBuilder builder = new BalancedColumnsBuilder(rectangle, b);
+
+        builder.add(
+            b.phrase("List 1 Title\n\n", "subHeader").build(),
+            newTestListNoHeader(lineCount1),
+            new SpaceElement(11f),
+            b.phrase("List 2 Title\n\n", "subHeader").build(),
+            newTestListNoHeader(lineCount2)
+        );
+
+        builder.go();
+
+        b.close().saveToFile(new File(String.format("output/BalancedSimpleText/ListsAndSpace/TwoElements_h_%03.0f_%02d_%02d.pdf", rectangle.getTop(), lineCount1, lineCount2)));
+
+    }
+
+    private void twoTitledManualListsAndSpace(
+        int lineCount1, int lineCount2, Rectangle rectangle) {
+        ITextBuilder b = createTestBuilder();
+
+        final BalancedColumnsBuilder builder = new BalancedColumnsBuilder(rectangle, b);
+
+        builder.add(
+            newTitledTestList(1, lineCount1),
+            new SpaceElement(11f),
+            newTitledTestList(2, lineCount2)
+        );
+
+        builder.go();
+
+        b.close().saveToFile(new File(String.format("output/BalancedSimpleText/ListsAndSpace/Manual_h_%03.0f_%02d_%02d.pdf", rectangle.getTop(), lineCount1, lineCount2)));
+
+    }
+
+    private void twoElementsExpectations(ITextBuilder b, BalancedColumnsBuilder builder, int expectedOnLeft, int expectedOnRight, int lineCount1, int lineCount2, ContentType type) {
         showComment("Expected: " + expectedOnLeft +
             " lines on the left, " + expectedOnRight +
             " lines on the right.");

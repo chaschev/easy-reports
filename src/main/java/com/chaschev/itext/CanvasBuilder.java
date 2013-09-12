@@ -92,9 +92,6 @@ public class CanvasBuilder {
         return canvas.createTemplate(width, height);
     }
 
-    public void addTemplate(PdfTemplate template, float a, float b, float c, float d, float e, float f, boolean tagContent) {
-        canvas.addTemplate(template, a, b, c, d, e, f, tagContent);
-    }
 
     public void addPSXObject(PdfPSXObject psobject) {
         canvas.addPSXObject(psobject);
@@ -209,9 +206,6 @@ public class CanvasBuilder {
         canvas.setCMYKColorStroke(cyan, magenta, yellow, black);
     }
 
-    public void addTemplate(PdfTemplate template, AffineTransform transform, boolean tagContent) {
-        canvas.addTemplate(template, transform, tagContent);
-    }
 
     public CanvasBuilder setGrayStroke(float gray) {
         canvas.setGrayStroke(gray);
@@ -282,9 +276,6 @@ public class CanvasBuilder {
         canvas.eoClip();
     }
 
-    public void addTemplate(PdfTemplate template, float x, float y, boolean tagContent) {
-        canvas.addTemplate(template, x, y, tagContent);
-    }
 
     public void beginText() {
         canvas.beginText();

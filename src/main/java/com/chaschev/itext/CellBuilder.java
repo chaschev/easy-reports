@@ -204,8 +204,9 @@ public class CellBuilder extends RectangleBuilder<CellBuilder>{
         return cell.getColspan();
     }
 
-    public void setColspan(int colspan) {
+    public CellBuilder setColspan(int colspan) {
         cell.setColspan(colspan);
+        return this;
     }
 
     public int getRowspan() {

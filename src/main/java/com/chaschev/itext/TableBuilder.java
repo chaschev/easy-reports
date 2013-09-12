@@ -121,6 +121,17 @@ public class TableBuilder {
         return reusableCellBuilder;
     }
 
+    public CellBuilder cell(Element element) {
+        final PdfPCell cell = new PdfPCell();
+        reusableCellBuilder
+            .reuse(cell)
+            .addElement(element);
+
+        defaultCellState.apply(reusableCellBuilder);
+
+        return reusableCellBuilder;
+    }
+
     ////////////////////////// DELEGATES /////////////////////////////////
 
     public int getHeaderRows() {
@@ -441,6 +452,22 @@ public class TableBuilder {
 
     public TableBuilder addCell(Phrase phrase, float indent, float fwIndent) {
         CellBuilder cb = cell(phrase);
+
+        if(indent >= 0){
+            cb.setIndent(indent);
+            cb.setFollowingIndent(fwIndent);
+        }
+
+        table.addCell(cb.build());
+        return this;
+    }
+
+    public TableBuilder addCell(com.itextpdf.text.List list) {
+        return addCell(list, -1,-1);
+    }
+
+    public TableBuilder addCell(com.itextpdf.text.List list, float indent, float fwIndent) {
+        CellBuilder cb = cell(list);
 
         if(indent >= 0){
             cb.setIndent(indent);

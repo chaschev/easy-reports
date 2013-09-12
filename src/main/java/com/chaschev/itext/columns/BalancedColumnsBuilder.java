@@ -276,10 +276,12 @@ public class BalancedColumnsBuilder {
                             if (rightCTB == null) {
                                 return new Result(ColumnText.NO_MORE_COLUMN, i + 1, currentCtb);
                             } else {
+                                rightCTB.copyContentFrom(currentCtb);
+
                                 currentCtb = rightCTB;
-                                rightCTB.copyContentFrom(leftCTB);
 
                                 final int status = currentCtb.go(simulate);
+
                                 if (ColumnText.hasMoreText(status)) {
                                     return new Result(ColumnText.NO_MORE_COLUMN, i + 1, currentCtb);
                                 }
