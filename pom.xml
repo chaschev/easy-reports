@@ -17,18 +17,40 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.chaschev.easy-reports</groupId>
+    <groupId>com.chaschev</groupId>
     <artifactId>easy-reports</artifactId>
     <packaging>jar</packaging>
     <version>1.0-SNAPSHOT</version>
     <name>easy-reports</name>
     <url>http://maven.apache.org</url>
 
+    <parent>
+        <groupId>org.sonatype.oss</groupId>
+        <artifactId>oss-parent</artifactId>
+        <version>7</version>
+    </parent>
+
     <scm>
-        <connection>scm:git:git://github.com/chaschev/easy-reports.git</connection>
-        <developerConnection>http:https://github.com/chaschev/easy-reports.git</developerConnection>
-        <url>https://github.com/chaschev/easy-reports</url>
+        <connection>scm:git:git@github.com/chaschev/easy-reports.git</connection>
+        <developerConnection>scm:git:git@github.com:chaschev/easy-reports.git</developerConnection>
+        <url>git@github.com:chaschev/easy-reports.git</url>
     </scm>
+
+    <developers>
+        <developer>
+            <id>chaschev</id>
+            <email>chaschev@gmail.com</email>
+            <name>Andrey Chaschev</name>
+        </developer>
+    </developers>
+
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
 
     <dependencies>
         <dependency>

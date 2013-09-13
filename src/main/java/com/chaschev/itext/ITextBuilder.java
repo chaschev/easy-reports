@@ -49,6 +49,8 @@ public class ITextBuilder  {
     protected final ColumnTextBuilder reusableColumnTextBuilder = new ColumnTextBuilder(this);
     protected final RectangleBuilder reusableRectangleBuilder = new RectangleBuilder();
 
+    protected final ListBuilder reusableListBuilder = new ListBuilder(this);
+
     protected Document document;
     private final OutputStream os;
     protected PdfWriter writer;
@@ -135,24 +137,24 @@ public class ITextBuilder  {
      * Creates text with normal style.
      */
     public PhraseBuilder phrase(String text){
-        return phrase(false).newPhrase(text, "normal");
+        return phrase(false).withNew(text, "normal");
     }
 
     public PhraseBuilder phrase(String text, String cssStyleString){
-        return phrase(false).newPhrase(text,cssStyleString);
+        return phrase(false).withNew(text, cssStyleString);
     }
 
     public ChunkBuilder chunk(String text){
-        return chunk(false, text, null).newChunk(text, (String)null);
+        return chunk(false, text, null).withNew(text, (String) null);
     }
 
     public ChunkBuilder chunk(String text, String cssStyleString){
-        return chunk(false, text, null).newChunk(text, cssStyleString);
+        return chunk(false, text, null).withNew(text, cssStyleString);
     }
 
     public PhraseBuilder phrase(boolean reuse){
         final PhraseBuilder phraseBuilder =
-            reuse ? reusablePhraseBuilder.newPhrase() : new PhraseBuilder(this).newPhrase();
+            reuse ? reusablePhraseBuilder.withNew() : new PhraseBuilder(this).withNew();
 
         if(defaultPhraseSettings != null){
             defaultPhraseSettings.apply(phraseBuilder);
@@ -167,7 +169,7 @@ public class ITextBuilder  {
 
     public ChunkBuilder chunk(boolean reuse, String text, Font font){
         final ChunkBuilder chunkBuilder =
-            reuse ? reusableChunkBuilder.newChunk(text, font) : new ChunkBuilder(this).newChunk(text, font);
+            reuse ? reusableChunkBuilder.withNew(text, font) : new ChunkBuilder(this).withNew(text, font);
 
         return applyDefaultSettings(chunkBuilder);
     }
@@ -246,5 +248,13 @@ public class ITextBuilder  {
 
     public StyleRegister styles(){
         return styles;
+    }
+
+    public void setCanvas(PdfContentByte canvas) {
+        this.canvas.canvas = canvas;
+    }
+
+    public ListBuilder reuseListBuilder() {
+        return reusableListBuilder;
     }
 }

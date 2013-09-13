@@ -61,69 +61,35 @@ public class BalancedColumnsBuilderTest {
         Font textBoldFont = FontFactory.getFont("OpenSansBold", BaseFont.WINANSI, BaseFont.EMBEDDED, 9f, Font.NORMAL);
 
         b.styles()
-            .add(new Style("header") {
+            .add("header subHeader normal comment", new StyleFunction() {
                 @Override
-                public void apply(Element element) {
-                    super.apply(element);
-
-                    if (element instanceof Phrase) {
-                        Phrase p = (Phrase) element;
-                        p.setLeading(11f);
-                    }
+                public void apply(PhraseBuilder ps) {
+                    ps.setLeading(11f);
                 }
-
-                public void applyToChunk(ChunkBuilder c) {
+            })
+            .add("header", new StyleFunction() {
+                public void apply(ChunkBuilder c) {
                     c.setFont(subHeaderFont)
                         .setCharacterSpacing(0.5f);
                 }
             })
-            .add(new Style("subHeader") {
-                @Override
-                public void apply(Element element) {
-                    super.apply(element);
-
-                    if (element instanceof Phrase) {
-                        Phrase p = (Phrase) element;
-                        p.setLeading(11f);
-                    }
-                }
-
-                public void applyToChunk(ChunkBuilder c) {
-
+            .add("subHeader", new StyleFunction() {
+                public void apply(ChunkBuilder c) {
                     c.setFont(subHeaderFont)
                         .setCharacterSpacing(0.25f);
                 }
             })
-            .add(new Style("normal") {
-                @Override
-                public void apply(Element element) {
-                    super.apply(element);
-
-                    if (element instanceof Phrase) {
-                        Phrase p = (Phrase) element;
-                        p.setLeading(11f);
-                    }
-                }
-
-                public void applyToChunk(ChunkBuilder c) {
+            .add("normal", new StyleFunction()  {
+                public void apply(ChunkBuilder c) {
                     c.setFont(textFont);
                 }
             })
-            .add(new Style("comment") {
-                @Override
-                public void apply(Element element) {
-                    super.apply(element);
-
-                    if (element instanceof Phrase) {
-                        Phrase p = (Phrase) element;
-                        p.setLeading(11f);
-                    }
-                }
-
-                public void applyToChunk(ChunkBuilder c) {
+            .add("comment", new StyleFunction() {
+                public void apply(ChunkBuilder c) {
                     c.setFont(textFontItalic);
                 }
             });
+
         return b;
     }
 
@@ -268,16 +234,19 @@ public class BalancedColumnsBuilderTest {
 
 
     @Test
+    @Ignore
     public void testSimpleText_TwoElements_Balance1() throws Exception {
         twoPhrasesTest(2, 4, 2, 4);
     }
 
     @Test
+    @Ignore
     public void testList_TwoElements_Balance1() throws Exception {
         twoPhrasesTest(2, 4, 2, 4, ContentType.LIST);
     }
 
     @Test
+    @Ignore
     public void testTable_TwoElements_Balance1() throws Exception {
         twoPhrasesTest(2, 4, 2, 4, ContentType.TABLE);
     }
@@ -343,15 +312,19 @@ public class BalancedColumnsBuilderTest {
     }
 
     @Test
+    @Ignore
     public void testSimpleText_TwoElements_SmallImbalance1() throws Exception {
         twoPhrasesTest(6, 9, 6, 9);
     }
+
     @Test
+    @Ignore
     public void testList_TwoElements_SmallImbalance1() throws Exception {
         twoPhrasesTest(6, 9, 6, 9, ContentType.LIST);
     }
 
     @Test
+    @Ignore
     public void testTable_TwoElements_SmallImbalance1() throws Exception {
         twoPhrasesTest(6, 9, 6, 9, ContentType.TABLE);
     }
@@ -412,10 +385,10 @@ public class BalancedColumnsBuilderTest {
     }
 
     @Test
-    @Ignore
+//    @Ignore
     public void multi_TwoTitledManualLists2() throws Exception {
-        for(int i = 3;i<18;i++){
-            for(int j = 3;j<18;j++){
+        for (int i = 3; i < 18; i++) {
+            for (int j = 3; j < 18; j++) {
                 twoTitledManualListsAndSpace(i, j, newRectangle());
             }
         }
@@ -493,28 +466,28 @@ public class BalancedColumnsBuilderTest {
         return list;
     }
 
-    public List newTitledTestList(int listIndex, int lineCount) {
-        List list = new List(false, false);
-
-        list.setPostSymbol(". ");
-        list.setListSymbol(b.chunk("- ", "normal").build());
-
-        final ListItem subHeader = new ListItem(b.phrase("List " + listIndex + " Title (" + lineCount + " lines)\n\n", "subHeader").build());
-        subHeader.setListSymbol(new Chunk(""));
-
-        list.add(subHeader);
+    public List newTitledManualList(int listIndex, int lineCount, ITextBuilder b) {
+        final ListBuilder list = b.reuseListBuilder()
+            .withNew()
+            .setNumbered(false)
+            .setLettered(false)
+            .setListSymbol(this.b.chunk("- ", "normal").build())
+            .newItem()
+                .add(b.phrase("List " + listIndex + " Title (" + lineCount + " lines)\n\n", "subHeader").build())
+                .setListSymbol(new Chunk(""))
+                .addToList();
 
         final Random random = new Random(2);
 
         for (int i = 0; i < lineCount; i++) {
-            final ListItem item = new ListItem(b.phrase("line " + (i + 1) + " " + RandomStringUtils.random(14+random.nextInt(50), "alsd fjasd df we asdf oiru")).build());
-//            final ListItem item = new ListItem(b.phrase("line " + (i + 1) + " " + RandomStringUtils.random(14+random.nextInt(50), "alsd fjasd df we asdf oiru")).build());
-            item.setListSymbol(b.chunk((i + 1)+". ").build());
-            item.setIndentationLeft(0, true);
-            list.add(item);
+            list.newItem("normal")
+                .add(b.phrase("line " + (i + 1) + " " + RandomStringUtils.random(14 + random.nextInt(50), "alsd fjasd df we asdf oiru")).build())
+                .setListSymbol(b.chunk((i + 1) + ". ").build())
+                .setIndentationLeft(0, true)
+                .addToList();
         }
 
-        return list;
+        return list.get();
     }
 
     public List newTestListNoHeader(int lineCount) {
@@ -705,9 +678,9 @@ public class BalancedColumnsBuilderTest {
         final BalancedColumnsBuilder builder = new BalancedColumnsBuilder(rectangle, b);
 
         builder.add(
-            newTitledTestList(1, lineCount1),
+            newTitledManualList(1, lineCount1, b),
             new SpaceElement(11f),
-            newTitledTestList(2, lineCount2)
+            newTitledManualList(2, lineCount2, b)
         );
 
         builder.go();

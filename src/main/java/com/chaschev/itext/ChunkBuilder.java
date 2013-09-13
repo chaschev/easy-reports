@@ -30,17 +30,22 @@ import java.util.UUID;
  * Date: 8/27/13
  */
 public class ChunkBuilder extends ElementBuilder<Chunk, ChunkBuilder> {
-
     public ChunkBuilder(ITextBuilder b) {
         super(b);
     }
 
-    public ChunkBuilder newChunk(final String content, final Font font){
+    @Override
+    public ChunkBuilder withNew() {
+        element = new Chunk();
+        return this;
+    }
+
+    public ChunkBuilder withNew(final String content, final Font font){
         element = new Chunk(content, font);
         return this;
     }
 
-    public ChunkBuilder newChunk(final String content, @Nullable final java.lang.String cssStyleString){
+    public ChunkBuilder withNew(final String content, @Nullable final java.lang.String cssStyleString){
         element = new Chunk(content);
 
         b.styles().apply(element, cssStyleString);

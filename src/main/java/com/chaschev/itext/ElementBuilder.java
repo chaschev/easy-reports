@@ -23,7 +23,7 @@ import com.itextpdf.text.Element;
  * Date: 8/29/13
  * Time: 4:09 PM
  */
-public class ElementBuilder<T extends Element, BUILDER extends ElementBuilder> {
+public abstract class ElementBuilder<T extends Element, BUILDER extends ElementBuilder> {
     protected ITextBuilder b;
     protected T element;
 
@@ -31,11 +31,18 @@ public class ElementBuilder<T extends Element, BUILDER extends ElementBuilder> {
         this.b = b;
     }
 
-    public BUILDER styles(String cssStyleString) {
+    public BUILDER with(T element){
+        this.element = element;
+        return (BUILDER) this;
+    }
+
+    public abstract BUILDER withNew();
+
+    public BUILDER applyStyles(String cssStyleString) {
         if (!cssStyleString.contains(" ")) {
             b.styles.apply(element, cssStyleString);
         } else {
-            final String[] styles = PhraseBuilder.SPACE_PATTERN.split(cssStyleString);
+            final String[] styles = AbstractPhraseBuilder.SPACE_PATTERN.split(cssStyleString);
 
             for (String style : styles) {
                 b.styles.apply(element, style);

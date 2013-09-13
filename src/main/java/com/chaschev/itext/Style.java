@@ -16,52 +16,31 @@
 
 package com.chaschev.itext;
 
-import com.itextpdf.text.Chunk;
 import com.itextpdf.text.Element;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * User: achaschev
- * Date: 8/29/13
- * Time: 2:55 PM
- */
-public abstract class Style<T extends Element> {
-    public String name;
+* User: chaschev
+* Date: 9/13/13
+*/
+public class Style {
+    protected final String name;
 
-    ITextBuilder b;
+    List<StyleFunction> styleFunctions = new ArrayList<StyleFunction>();
 
-    protected Style(String name) {
+    public Style(String name) {
         this.name = name;
     }
 
-    public void applyToChunk(ChunkBuilder c){
-        throw new UnsupportedOperationException("todo: implement " +
-            this.getClass().getSimpleName() + ".applyToChunk(c)");
+    public boolean isEmpty() {
+        return styleFunctions.isEmpty();
     }
 
-    public void apply(T element){
-        apply(element, true);
-    }
-
-    public void apply(T element, boolean applyToChildrenChunks){
-        final ChunkBuilder cb = new ChunkBuilder(b);
-
-        if (element instanceof Chunk) {
-            Chunk chunk = (Chunk) element;
-            b.applyDefaultSettings(cb.withChunk(chunk));
-
-            applyToChunk(cb);
-        }else
-        if(applyToChildrenChunks){
-            final List<Chunk> chunks = element.getChunks();
-
-            for (Chunk chunk : chunks) {
-                b
-                    .applyDefaultSettings(cb.withChunk(chunk));
-
-                applyToChunk(cb);
-            }
+    public void apply(Element el) {
+        for (StyleFunction function : styleFunctions) {
+            function.applyGeneral(el);
         }
     }
 }

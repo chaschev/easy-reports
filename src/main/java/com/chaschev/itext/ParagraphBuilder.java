@@ -16,26 +16,20 @@
 
 package com.chaschev.itext;
 
-import com.itextpdf.text.Phrase;
+import com.itextpdf.text.Paragraph;
 
 /**
 * User: chaschev
 * Date: 9/13/13
 */
-public class PhraseBuilder extends AbstractPhraseBuilder<Phrase, PhraseBuilder>{
-
-    public PhraseBuilder(ITextBuilder b) {
+public class ParagraphBuilder extends AbstractParagraphBuilder<Paragraph, ParagraphBuilder>{
+    public ParagraphBuilder(ITextBuilder b) {
         super(b);
     }
 
-    public PhraseBuilder withNew(){
-        element = new Phrase();
+    @Override
+    public ParagraphBuilder withNew() {
+        element = new Paragraph();
         return this;
-    }
-
-    public PhraseBuilder withNew(String text, String cssStyleString){
-        element = new Phrase(text);
-
-        return applyStyles(cssStyleString);
     }
 }

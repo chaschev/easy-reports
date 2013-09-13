@@ -16,12 +16,11 @@
 
 package com.chaschev.itext;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 import com.itextpdf.text.Element;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * User: achaschev
@@ -29,40 +28,54 @@ import java.util.Collection;
  * Time: 3:08 PM
  */
 public class StyleRegister {
-    Multimap<String, Style> styles = HashMultimap.create();
+    Map<String, Style> styles = new HashMap<String, Style>();
     ITextBuilder b;
 
     public StyleRegister(ITextBuilder b) {
         this.b = b;
 
-        add(new Style("normal") {
-            @Override
-            public void applyToChunk(ChunkBuilder c) {
+        add("normal", new StyleFunction() {
+            public void apply(ChunkBuilder c) {
 
             }
         });
     }
 
-    public StyleRegister add(Style style){
-        styles.put(style.name, style);
-        style.b = b;
+    public StyleRegister add(String cssStyleString, StyleFunction styleFunction){
+        final String[] styles = PhraseBuilder.SPACE_PATTERN.split(cssStyleString);
+
+        styleFunction.b = b;
+
+        for (String name : styles) {
+            Style style = getStyle(name);
+            style.styleFunctions.add(styleFunction);
+        }
+
         return this;
     }
 
-    public StyleRegister apply(Element el, @Nullable java.lang.String style) {
-        if(style == null){
-            style = "normal";
+    private Style getStyle(String name) {
+        Style r = styles.get(name);
+
+        if(r == null){
+            styles.put(name, r = new Style(name));
         }
 
-        final Collection<Style> stylesCollection = styles.get(style);
+        return r;
+    }
 
-        if(stylesCollection.isEmpty()){
-            throw new IllegalStateException("could not find style: " + style);
+    public StyleRegister apply(Element el, @Nullable String styleName) {
+        if(styleName == null){
+            styleName = "normal";
         }
 
-        for (Style s : stylesCollection) {
-            s.apply(el);
+        final Style style = styles.get(styleName);
+
+        if(style.isEmpty()){
+            throw new IllegalStateException("could not find style: " + styleName);
         }
+
+        style.apply(el);
 
         return this;
     }
