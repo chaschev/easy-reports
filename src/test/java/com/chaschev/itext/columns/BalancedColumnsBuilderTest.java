@@ -385,7 +385,7 @@ public class BalancedColumnsBuilderTest {
     }
 
     @Test
-//    @Ignore
+    @Ignore
     public void multi_TwoTitledManualLists2() throws Exception {
         for (int i = 3; i < 18; i++) {
             for (int j = 3; j < 18; j++) {

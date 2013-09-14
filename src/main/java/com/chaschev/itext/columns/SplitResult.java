@@ -195,8 +195,7 @@ public class SplitResult {
             v *= 3.0;
         } else if (splitH <= 11.0 * 2.5) {
             v *= 2.0;
-        }
-        if (splitH <= 11.0 * 3.5) {
+        } else if (splitH <= 11.0 * 3.5) {
             v *= 1.5;
         }
 

@@ -353,8 +353,9 @@ public class ColumnTextBuilder {
         columnText.setLeading(fixedLeading, multipliedLeading);
     }
 
-    public void setYLine(float yLine) {
+    public ColumnTextBuilder setYLine(float yLine) {
         columnText.setYLine(yLine);
+        return this;
     }
 
     public ColumnTextBuilder setSimpleColumn(Rectangle rect) {
@@ -814,5 +815,22 @@ public class ColumnTextBuilder {
         private void finishOnNext() {
             finishOnNext = true;
         }
+    }
+
+    public ColumnTextBuilder flipPageForSpace(float height){
+        if(getYLine() - height < iTextBuilder.document.bottom()){
+            iTextBuilder.document.newPage();
+            onPageFlip();
+        }
+
+        return this;
+    }
+
+    public void onPageFlip() {
+        final RectangleBuilder rect = getCurrentRectangle()
+            .setTop(iTextBuilder.document.top())
+            .setBottom(iTextBuilder.document.bottom());
+
+        setSimpleColumn(rect.get(), false);
     }
 }

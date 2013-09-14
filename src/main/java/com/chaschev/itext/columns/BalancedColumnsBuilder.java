@@ -69,10 +69,17 @@ public class BalancedColumnsBuilder {
     private ColumnTextBuilder leftCTB;
     private ColumnTextBuilder rightCTB;
     final SplitResult bestResult = new SplitResult().worstResult();
+    private @Nullable ColumnTextBuilder updateAfterRun;
 
 
     public BalancedColumnsBuilder(Rectangle rectangle, ITextBuilder b) {
         this.origRectangle = new RectangleBuilder().reuse(rectangle);
+        this.b = b;
+    }
+
+    public BalancedColumnsBuilder(ColumnTextBuilder ctb, ITextBuilder b) {
+        this.origRectangle = new RectangleBuilder().reuse(ctb.getCurrentRectangle().get());
+        updateAfterRun = ctb;
         this.b = b;
     }
 
@@ -103,8 +110,16 @@ public class BalancedColumnsBuilder {
         return v * 1.0;
     }
 
-    public void go() {
-        _go();
+    public BalancingResult go() {
+        return _go();
+    }
+
+    public static class BalancingResult{
+        public float yLine;
+
+        public BalancingResult(float yLine) {
+            this.yLine = yLine;
+        }
     }
 
     /**
@@ -301,7 +316,7 @@ public class BalancedColumnsBuilder {
         }
     }
 
-    private void _go(){
+    private BalancingResult _go(){
         if(b.drawBorders){
             b.getCanvasBuilder().drawGrayRectangle(origRectangle.get(), BaseColor.LIGHT_GRAY);
         }
@@ -363,7 +378,9 @@ public class BalancedColumnsBuilder {
                     .setPageSplit(i, leftCTB.hasMoreText()));
         }
 
-        if(pageOverFlow) return;
+        if(pageOverFlow) {
+            return applyBestResult();
+        }
 
         elementsCycle:
         for (; i < elements.size(); i++) {
@@ -418,6 +435,14 @@ public class BalancedColumnsBuilder {
         //here we have bestResult, so let's add our content with no simulation!
 
 //        setColumn(bestResult, b.newColumnTextBuilder())
+        return applyBestResult();
+    }
+
+    private BalancingResult applyBestResult() {
+        final float hCenter = horCenter();
+        List<Element> elements = sequence.getElements();
+
+
         setColumn((float) bestResult.leftColumnHeight, hCenter, true, true, singleColumnRect, leftCTB);
         setColumn((float) bestResult.rightColumnHeight, hCenter, false, false, singleColumnRect, rightCTB);
 
@@ -436,13 +461,33 @@ public class BalancedColumnsBuilder {
             .setSimulate(false)
             .go();
 
+        float yLine = Math.min(leftCTB.getYLine(), rightCTB.getYLine());
+
+        final BalancingResult r;
+
         if(addResult.hasContentLeft(elements.size())){
             final ColumnTextBuilder contentCopy = addResult.contentLeft == null ? null :
                 b.newColumnTextBuilder().setACopy(addResult.contentLeft);
 
 
-            startWithANewPage(contentCopy, addResult.index);
+            r = startWithANewPage(contentCopy, addResult.index);
+        }else{
+            r = new BalancingResult(yLine);
+
+//            if(updateAfterRun != null){
+//                updateAfterRun.growBottom(origRectangle.getTop() - yLine);
+//            }
         }
+
+        if (updateAfterRun != null) {
+            updateAfterRun.setSimpleColumn(
+                b.reuseRectangleBuilder(new Rectangle(origRectangle.get()))
+                    .setTop(yLine)
+                    .setBottom(b.getDocument().bottom()).get());
+        }
+
+
+        return r;
     }
 
     private boolean iterateOnLeft(Iterator<AtomicIncreaseResult> iterator, int currentIndex, SplitResult currentResult, float elementTop, float elementHeight) {
@@ -477,7 +522,7 @@ public class BalancedColumnsBuilder {
         return false;
     }
 
-    private void startWithANewPage(ColumnTextBuilder content, int startAt) {
+    private BalancingResult startWithANewPage(ColumnTextBuilder content, int startAt) {
         //noinspection SimplifiableConditionalExpression
         logger.debug("starting with a new page, content: {}, startAt: {}", content == null ? false : content.hasMoreText(), startAt);
 
@@ -487,7 +532,7 @@ public class BalancedColumnsBuilder {
 
         b.getDocument().newPage();
 
-        new BalancedColumnsBuilder(content, startAt, rect.get(), b)
+        return new BalancedColumnsBuilder(content, startAt, rect.get(), b)
             .setSequence(sequence)
             .go();
     }
@@ -715,6 +760,21 @@ public class BalancedColumnsBuilder {
 
     private BalancedColumnsBuilder setSequence(ElementSequence sequence) {
         this.sequence = sequence;
+        return this;
+    }
+
+    public BalancedColumnsBuilder updateAfterRun(ColumnTextBuilder ctb){
+        this.updateAfterRun = ctb;
+        return this;
+    }
+
+    public BalancedColumnsBuilder setHPadding(float hPadding) {
+        this.hPadding = hPadding;
+        return this;
+    }
+
+    public BalancedColumnsBuilder trimSpaceElements(){
+        sequence.trim();
         return this;
     }
 }

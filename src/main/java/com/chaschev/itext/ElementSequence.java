@@ -69,4 +69,10 @@ public class ElementSequence {
     public float getInitialContentHeight() {
         return initialContentHeight;
     }
+
+    public void trim() {
+        while(!elements.isEmpty() && elements.get(elements.size() - 1) instanceof SpaceElement){
+            elements.remove(elements.size() - 1);
+        }
+    }
 }
