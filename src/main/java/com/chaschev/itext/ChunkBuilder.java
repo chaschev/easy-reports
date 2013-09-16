@@ -23,7 +23,6 @@ import javax.annotation.Nullable;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * User: achaschev
@@ -185,10 +184,6 @@ public class ChunkBuilder extends ElementBuilder<Chunk, ChunkBuilder> {
         return element.getHorizontalScaling();
     }
 
-    public UUID getId() {
-        return element.getId();
-    }
-
     public Chunk setUnderline(BaseColor color, float thickness, float thicknessMul, float yPosition, float yPositionMul, int cap) {
         return element.setUnderline(color, thickness, thicknessMul, yPosition, yPositionMul, cap);
     }
@@ -265,10 +260,6 @@ public class ChunkBuilder extends ElementBuilder<Chunk, ChunkBuilder> {
 
     public Chunk setHyphenation(HyphenationEvent hyphenation) {
         return element.setHyphenation(hyphenation);
-    }
-
-    public void setId(UUID id) {
-        element.setId(id);
     }
 
     public List<Chunk> getChunks() {

@@ -48,6 +48,7 @@ public class ITextBuilder  {
     protected final PhraseBuilder reusablePhraseBuilder = new PhraseBuilder(this);
     protected final ColumnTextBuilder reusableColumnTextBuilder = new ColumnTextBuilder(this);
     protected final RectangleBuilder reusableRectangleBuilder = new RectangleBuilder();
+    protected final ParagraphBuilder reusableParagraphBuilder = new ParagraphBuilder(this);
 
     protected final ListBuilder reusableListBuilder = new ListBuilder(this);
 
@@ -144,6 +145,14 @@ public class ITextBuilder  {
         return phrase(false).withNew(text, cssStyleString);
     }
 
+    public ParagraphBuilder buildPar(String text, String cssStyleString){
+        return buildPar(false).withNew(text, cssStyleString);
+    }
+
+    public Paragraph par(String text, String cssStyleString){
+        return buildPar(true).withNew(text, cssStyleString).build();
+    }
+
     public ChunkBuilder chunk(String text){
         return chunk(false, text, null).withNew(text, (String) null);
     }
@@ -161,6 +170,10 @@ public class ITextBuilder  {
         }
 
         return phraseBuilder;
+    }
+
+    public ParagraphBuilder buildPar(boolean reuse){
+        return reuse ? reusableParagraphBuilder.withNew() : new ParagraphBuilder(this).withNew();
     }
 
     public PhraseBuilder reusePhraseBuilder(){

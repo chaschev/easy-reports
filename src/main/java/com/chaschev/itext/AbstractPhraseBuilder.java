@@ -125,7 +125,7 @@ public abstract class AbstractPhraseBuilder<T extends Phrase, BUILDER extends Ab
         element.setTabSettings(tabSettings);
     }
 
-    public Phrase build(){
+    public T build(){
         return element;
     }
 }

@@ -50,10 +50,6 @@ public abstract class AbstractParagraphBuilder<T extends Paragraph, BUILDER exte
         element.setRole(role);
     }
 
-    public UUID getId() {
-        return element.getId();
-    }
-
     public float getSpacingBefore() {
         return element.getSpacingBefore();
     }
@@ -74,8 +70,9 @@ public abstract class AbstractParagraphBuilder<T extends Paragraph, BUILDER exte
         return this.element.set(index, element);
     }
 
-    public void setKeepTogether(boolean keeptogether) {
+    public BUILDER setKeepTogether(boolean keeptogether) {
         element.setKeepTogether(keeptogether);
+        return (BUILDER) this;
     }
 
     public ListIterator<Element> listIterator() {
@@ -210,10 +207,6 @@ public abstract class AbstractParagraphBuilder<T extends Paragraph, BUILDER exte
 
     public ListIterator<Element> listIterator(int index) {
         return element.listIterator(index);
-    }
-
-    public void setId(UUID id) {
-        element.setId(id);
     }
 
     public void ensureCapacity(int minCapacity) {

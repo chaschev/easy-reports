@@ -392,9 +392,7 @@ public class BalancedColumnsBuilder {
                 .setElementsAddedCount(i)
                 .setLeftColumnHeight(leftCTB.getCurrentHeight());
 
-            if(i > 0){          //this is 99.9% true
-                considerAddingToRight(i, false);
-            }
+            considerAddingOnRightAtWholeElement(i);
 
             if (el instanceof SpaceElement) {
                 SpaceElement space = (SpaceElement) el;
@@ -432,10 +430,19 @@ public class BalancedColumnsBuilder {
         }
 
 
+        considerAddingOnRightAtWholeElement(i);
+
+
         //here we have bestResult, so let's add our content with no simulation!
 
 //        setColumn(bestResult, b.newColumnTextBuilder())
         return applyBestResult();
+    }
+
+    private void considerAddingOnRightAtWholeElement(int i) {
+        if(i > 0 && !previousIsSpace(i)){
+            considerAddingToRight(i, false);
+        }
     }
 
     private BalancingResult applyBestResult() {
@@ -515,11 +522,16 @@ public class BalancedColumnsBuilder {
                     break;
 
                 case NO_MORE_CONTENT:
-                    considerAddingToRight(currentIndex + 1, false);
+                    //don't consider adding to right as this case must be checked in the main loop
+//                    considerAddingToRight(currentIndex + 1, false);
                     break;
             }
         }
         return false;
+    }
+
+    private boolean previousIsSpace(int currentIndex) {
+        return sequence.size() > 0 && currentIndex > 0 && (sequence.getElements().get(currentIndex - 1) instanceof SpaceElement);
     }
 
     private BalancingResult startWithANewPage(ColumnTextBuilder content, int startAt) {
@@ -602,12 +614,14 @@ public class BalancedColumnsBuilder {
 
         i = quickResult.index;
 
+        int elementsAdded = quickResult.contentLeft == null ? i : i - 1;
+
         bestResult.assignIfWorseThan(
             currentRightResult
-                .setElementsAddedCount(i)
+                .setElementsAddedCount(elementsAdded)   //todo!!!
                 .setRightElementSplitHeight(0, 0)
                 .setRightColumnHeight(rightCTB.getCurrentHeight())
-                .setPageSplit(i, quickResult.hasContentLeft(elements.size()))
+                .setPageSplit(elementsAdded, quickResult.hasContentLeft(elements.size()))
         );
 
         boolean pageOverFlow = false;
@@ -707,7 +721,8 @@ public class BalancedColumnsBuilder {
                     bestResult.assignIfWorseThan(currentResult);
                     break;
                 case NO_MORE_CONTENT:
-                    setFullAddedElementsStateRight(currentResult, currentIndex + 1, rightCTB.getCurrentHeight());
+                    //must be done in the main cycle
+//                    setFullAddedElementsStateRight(currentResult, currentIndex + 1, rightCTB.getCurrentHeight());
 
                     break cycle;
             }

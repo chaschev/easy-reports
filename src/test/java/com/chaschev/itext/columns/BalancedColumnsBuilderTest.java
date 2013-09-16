@@ -17,7 +17,9 @@
 package com.chaschev.itext.columns;
 
 import com.chaschev.itext.*;
+import com.google.common.collect.Lists;
 import com.itextpdf.text.*;
+import com.itextpdf.text.List;
 import com.itextpdf.text.pdf.BaseFont;
 import com.itextpdf.text.pdf.ColumnText;
 import com.itextpdf.text.pdf.PdfPTable;
@@ -29,8 +31,9 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import javax.annotation.Nullable;
 import java.io.File;
-import java.util.Random;
+import java.util.*;
 
 /**
  * User: chaschev
@@ -38,6 +41,9 @@ import java.util.Random;
  */
 public class BalancedColumnsBuilderTest {
     private ITextBuilder b;
+    private static Font headerFont;
+    private static Font hugeFont;
+    private static Font subHeaderFont;
 
     @Before
     public void createITextBuilder() throws DocumentException {
@@ -53,23 +59,29 @@ public class BalancedColumnsBuilderTest {
 
         ITextBuilder b = ITextSingleton.INSTANCE.newBuilder(document).drawBorders();
 
-        Font headerFont = FontFactory.getFont("OpenSansBold", BaseFont.WINANSI, BaseFont.EMBEDDED, 12f, Font.NORMAL);
-        final Font subHeaderFont = FontFactory.getFont("OpenSansBold", BaseFont.WINANSI, BaseFont.EMBEDDED, 9f, Font.NORMAL);
+        headerFont = FontFactory.getFont("OpenSansBold", BaseFont.WINANSI, BaseFont.EMBEDDED, 12f, Font.NORMAL);
+        hugeFont = FontFactory.getFont("OpenSans", BaseFont.WINANSI, BaseFont.EMBEDDED, 18f, Font.NORMAL);
+        subHeaderFont = FontFactory.getFont("OpenSansBold", BaseFont.WINANSI, BaseFont.EMBEDDED, 9f, Font.NORMAL);
         final Font textFont = FontFactory.getFont("OpenSans", BaseFont.WINANSI, BaseFont.EMBEDDED, 9f, Font.NORMAL);
         final Font textFontItalic = FontFactory.getFont("OpenSansItalic", BaseFont.WINANSI, BaseFont.EMBEDDED, 9f, Font.NORMAL);
         Font fixedWidthTextFont = FontFactory.getFont(FontFactory.COURIER, BaseFont.WINANSI, BaseFont.EMBEDDED, 8f, Font.NORMAL);
         Font textBoldFont = FontFactory.getFont("OpenSansBold", BaseFont.WINANSI, BaseFont.EMBEDDED, 9f, Font.NORMAL);
 
         b.styles()
-            .add("header subHeader normal comment", new StyleFunction() {
+            .add("header subHeader normal comment listItem", new StyleFunction() {
                 @Override
-                public void apply(PhraseBuilder ps) {
-                    ps.setLeading(11f);
+                public void apply(PhraseBuilder pb) {
+                    pb.setLeading(11f);
+                }
+
+                @Override
+                public void apply(ParagraphBuilder pb) {
+                    pb.setLeading(11);
                 }
             })
             .add("header", new StyleFunction() {
                 public void apply(ChunkBuilder c) {
-                    c.setFont(subHeaderFont)
+                    c.setFont(headerFont)
                         .setCharacterSpacing(0.5f);
                 }
             })
@@ -87,6 +99,29 @@ public class BalancedColumnsBuilderTest {
             .add("comment", new StyleFunction() {
                 public void apply(ChunkBuilder c) {
                     c.setFont(textFontItalic);
+                }
+            })
+            .add("listItem", new StyleFunction() {
+                @Override
+                public void apply(ParagraphBuilder pb) {
+//                    pb
+//                        .setKeepTogether(true)
+//                    .setLeading(11)
+                    ;
+                }
+            })
+            .add("huge", new StyleFunction() {
+                @Override
+                public void apply(ChunkBuilder c) {
+                    c.setFont(hugeFont);
+                }
+
+                @Override
+                public void apply(ParagraphBuilder pb) {
+                    pb
+//                        .setLeading(20f)
+                        .setFont(hugeFont)
+                    ;
                 }
             });
 
@@ -407,6 +442,72 @@ public class BalancedColumnsBuilderTest {
     @Test
     public void tempSpace() throws Exception {
         twoPhrasesAndSpace(11, 10, newRectangle());
+    }
+
+    @Test
+    public void listNonBreakingTest1(){
+        ITextBuilder b = createTestBuilder();
+
+        final int margin = 0;
+        final BalancedColumnsBuilder builder = new BalancedColumnsBuilder(new Rectangle(b.getDocument().left(margin), 600, b.getDocument().right(margin), 670), b);
+
+        builder.add(
+            newTitledList(null, Lists.newArrayList(
+                "Ranitidine 150 MG - Every 24 Hours, by mouth",
+                "Pravachol 40 MG Oral Tablet - Every 24 Hours, by mouth",
+                "ProAir HFA 90 MCG/ACTUAT Metered Dose Inhaler, 200 ACTUAT - Every 24 Hours, PRN, inhalation",
+                "Propylene glycol - Every 24 Hours, in eyes",
+                "predniSONE 20 MG - every other day, by mouth",
+                "Advair 500/50 (uticasone propionate 0.5 MG/ACTUAT / " +
+                    "salmeterol 0.05 MG/ACTUAT) Dry Powder Inhaler - Every 12 " +
+                    "Hours, inhalation",
+                "Coumadin 5 MG Oral Tablet - Every 24 Hours, inhalation",
+                "Glucotrol 2.5 MG Extended Release Tablet - Every 12 Hours, by " +
+                    "mouth",
+                "Norco 10/325 (hydrocodone / APAP) Oral Tablet - Every 4 Hours, " +
+                    "PRN, by mouth",
+                "Miralax 17 GM per 4 oz Oral Solution - Every 24 Hours, by mouth, Miralax 17 GM per 4 oz Oral Solution - Every 24 Hours, by mouth, Miralax 17 GM per 4 oz Oral Solution - Every 24 Hours, by mouth, Miralax 17 GM per 4 oz Oral Solution - Every 24 Hours, by mouth, Miralax 17 GM per 4 oz Oral Solution - Every 24 Hours, by mouth, Miralax 17 GM per 4 oz Oral Solution - Every 24 Hours, by mouth, Miralax 17 GM per 4 oz Oral Solution - Every 24 Hours, by mouth, Miralax 17 GM per 4 oz Oral Solution - Every 24 Hours, by mouth, Miralax 17 GM per 4 oz Oral Solution - Every 24 Hours, by mouth, Miralax 17 GM per 4 oz Oral Solution - Every 24 Hours, by mouth, Miralax 17 GM per 4 oz Oral Solution - Every 24 Hours, by mouth, Miralax 17 GM per 4 oz Oral Solution - Every 24 Hours, by mouth, Miralax 17 GM per 4 oz Oral Solution - Every 24 Hours, by mouth, Miralax 17 GM per 4 oz Oral Solution - Every 24 Hours, by mouth, Miralax 17 GM per 4 oz Oral Solution - Every 24 Hours, by mouth",
+                "albuterol 0.417 MG/ML (albuterol sulfate 0.5 MG/ML) Inhalant " +
+                    "Solution [Accuneb] - Every 8 Hours, PRN, inhalation",
+                "Furosemide 20 MG - every other day, by mouth",
+                "Januvia 50 MG (sitagliptin phosphate monohydrate 64.25 MG) " +
+                    "Oral Tablet - Every 12 Hours, by mouth",
+                "pantoprazole 20 MG - Every 24 Hours, by mouth",
+                "Spiriva 18 MCG/ACTUAT (tiotropium bromide 22.5 " +
+                    "MCG/ACTUAT) Inhalant Powder - Every 24 Hours, inhalation",
+                "Mucinex 600 MG Extended Release Tablet - Every 12 Hours, " +
+                    "PRN, by mouth"
+            ), "numbers")
+        );
+
+        builder.go();
+
+        b.close().saveToFile(new File(String.format("output/listNonBreakingTest1.pdf")));
+    }
+
+    @Test
+    public void reportListBalancesToLeftTest(){
+        ITextBuilder b = createTestBuilder();
+
+        final int margin = 0;
+        final BalancedColumnsBuilder builder = new BalancedColumnsBuilder(new Rectangle(b.getDocument().left(margin), 600, b.getDocument().right(margin), 670), b);
+
+        builder.add(
+            newTitledList("1. Anemia", Lists.newArrayList("Minor anemia."), "none"),
+            new SpaceElement(15),
+newTitledList("2. HTN", Lists.newArrayList("Continue to follow, not on antihypertensives currently"), "none"),
+            new SpaceElement(15),
+newTitledList("3. Diabetes Type 2", Lists.newArrayList("Hold Glipizide and Januvia (Diabetes mellitus (steroid-induced))"), "none"),
+            new SpaceElement(15),
+newTitledList("4. COPD", Lists.newArrayList("Will treat bronchitis."), "none"),
+            new SpaceElement(15),
+newTitledList("5. Atrial Fibrillation", Collections.<String>emptyList(), "none")
+        );
+
+        builder.go();
+
+        b.close().saveToFile(new File(String.format("output/reportListBalancesToLeftTest.pdf")));
+
     }
 
     @Test
@@ -736,5 +837,44 @@ public class BalancedColumnsBuilderTest {
                 return false;
             }
         };
+    }
+
+    public List newTitledList(@Nullable String title, java.util.List<String> items, String type) {
+        return newTitledList(title, items, type, true);
+    }
+
+    public List newTitledList(@Nullable String title, java.util.List<String> items, String type, boolean keeptogether) {
+        final Chunk dash = b.chunk("• ", "subHeader").build();
+        final Chunk empty = new Chunk("");
+
+        final ListBuilder list = b.reuseListBuilder()
+            .withNew()
+            .setNumbered(false)
+            .setLettered(false)
+            .setListSymbol(dash);
+
+        if(title!= null){
+            list.newItem("normal")
+                .add(b.phrase(title, "subHeader").build())
+                .setListSymbol(empty)
+                .addToList();
+        }
+
+        for (int i = 0; i < items.size(); i++) {
+            final Chunk symbol;
+
+            if("bullets".equals(type)) symbol = dash; else
+            if("numbers".equals(type)) symbol = b.chunk((i + 1) + ". ").build(); else
+                symbol = empty;
+
+            list.newItem("normal")
+                .setListSymbol(symbol)
+                .add(b.buildPar(items.get(i), "normal").build())
+                .setKeepTogether(keeptogether)
+                .setIndentationLeft(0, true)
+                .addToList();
+        }
+
+        return list.get();
     }
 }

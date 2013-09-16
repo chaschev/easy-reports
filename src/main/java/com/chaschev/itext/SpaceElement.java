@@ -68,6 +68,9 @@ public class SpaceElement implements Element {
         return height;
     }
 
+    public boolean fits(ColumnTextBuilder ctb){
+        return fits(ctb, ctb.getBottom());
+    }
 
     public boolean fits(ColumnTextBuilder ctb, float bottom){
         return ctb.getYLine() - height >= bottom;

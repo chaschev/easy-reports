@@ -506,7 +506,7 @@ public class ColumnTextBuilder {
     }
 
     public ColumnTextBuilder adjustBottom(float newRectHeight) {
-        iTextBuilder.reusableRectangleBuilder.reuse(simpleColumnRectangle).adjustBottom(newRectHeight);
+        new RectangleBuilder().reuse(simpleColumnRectangle).adjustBottom(newRectHeight);
 
         setSimpleColumn(simpleColumnRectangle);
 
@@ -713,13 +713,18 @@ public class ColumnTextBuilder {
 
         for (Element el : element) {
             if (el instanceof SpaceElement) {
-                ((SpaceElement) el).add(reusableCtb, true);
+                final SpaceElement space = (SpaceElement) el;
+                if(space.fits(reusableCtb)){
+                    space.add(reusableCtb, true);
+                }else{
+                    return false;
+                }
             } else {
                 reusableCtb.addElement(el);
-            }
 
-            if (ColumnText.hasMoreText(reusableCtb.go(true))) {
-                return false;
+                if (ColumnText.hasMoreText(reusableCtb.go(true))) {
+                    return false;
+                }
             }
         }
 
@@ -792,6 +797,16 @@ public class ColumnTextBuilder {
 
                 final float v1 = getYLine();
 
+                // iText has a bug here: it can't handle keepTogether()
+                // because it presumes that items would never be rolled back
+                // so it adds line by line, adding line heights to yLine.
+                // So on the iteration, when I have 16px rect, one line fits,
+                // I increase the height by 3px, it false-positively adds the second line
+                // which fits the 16+3-height rectangle.
+                // So force it to rollback to the previous state by invoking restoreState(),
+                // so that it would add items from scratch.
+                saveState();
+
                 status = go(true);
 
                 if(!ColumnText.hasMoreText(status)){
@@ -807,6 +822,8 @@ public class ColumnTextBuilder {
                         GrowthResultType.NORMAL);
                     break;
                 }
+
+                restoreState();
             }
 
             return r;

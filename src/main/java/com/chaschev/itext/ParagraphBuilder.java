@@ -18,6 +18,8 @@ package com.chaschev.itext;
 
 import com.itextpdf.text.Paragraph;
 
+import javax.annotation.Nullable;
+
 /**
 * User: chaschev
 * Date: 9/13/13
@@ -30,6 +32,14 @@ public class ParagraphBuilder extends AbstractParagraphBuilder<Paragraph, Paragr
     @Override
     public ParagraphBuilder withNew() {
         element = new Paragraph();
+        return this;
+    }
+
+    public ParagraphBuilder withNew(final String content, @Nullable final java.lang.String cssStyleString){
+        element = new Paragraph(content);
+
+        b.styles().apply(element, cssStyleString);
+
         return this;
     }
 }

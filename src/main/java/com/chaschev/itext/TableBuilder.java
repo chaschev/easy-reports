@@ -23,7 +23,6 @@ import com.itextpdf.text.pdf.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.UUID;
 
 /**
 * User: chaschev
@@ -177,10 +176,6 @@ public class TableBuilder {
 
     public boolean isExtendLastRow(boolean newPageFollows) {
         return table.isExtendLastRow(newPageFollows);
-    }
-
-    public void setId(UUID id) {
-        table.setId(id);
     }
 
     public void setExtendLastRow(boolean extendLastRows) {
@@ -537,10 +532,6 @@ public class TableBuilder {
     public TableBuilder addCell(String text) {
         table.addCell(text);
         return this;
-    }
-
-    public UUID getId() {
-        return table.getId();
     }
 
     public TableBuilder addCell(PdfPCell cell) {

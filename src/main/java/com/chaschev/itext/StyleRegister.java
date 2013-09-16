@@ -64,18 +64,22 @@ public class StyleRegister {
         return r;
     }
 
-    public StyleRegister apply(Element el, @Nullable String styleName) {
-        if(styleName == null){
-            styleName = "normal";
+    public StyleRegister apply(Element el, @Nullable String cssStyleString) {
+        if(cssStyleString == null){
+            cssStyleString = "normal";
         }
 
-        final Style style = styles.get(styleName);
+        final String[] styles = PhraseBuilder.SPACE_PATTERN.split(cssStyleString);
 
-        if(style.isEmpty()){
-            throw new IllegalStateException("could not find style: " + styleName);
+        for (String styleName : styles) {
+            final Style style = this.styles.get(styleName);
+
+            if(style.isEmpty()){
+                throw new IllegalStateException("could not find style: " + styleName);
+            }
+
+            style.apply(el);
         }
-
-        style.apply(el);
 
         return this;
     }

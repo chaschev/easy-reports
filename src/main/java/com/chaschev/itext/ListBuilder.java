@@ -22,7 +22,6 @@ import com.itextpdf.text.pdf.PdfObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.UUID;
 
 /**
  * User: chaschev
@@ -220,10 +219,6 @@ public class ListBuilder {
         return this;
     }
 
-    public void setId(UUID id) {
-        list.setId(id);
-    }
-
     public int type() {
         return list.type();
     }
@@ -235,10 +230,6 @@ public class ListBuilder {
     public ListBuilder setListSymbol(Chunk symbol) {
         list.setListSymbol(symbol);
         return this;
-    }
-
-    public UUID getId() {
-        return list.getId();
     }
 
     public boolean isEmpty() {

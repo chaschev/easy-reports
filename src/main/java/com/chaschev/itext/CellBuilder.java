@@ -22,7 +22,6 @@ import com.itextpdf.text.pdf.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.UUID;
 
 /**
 * User: chaschev
@@ -385,14 +384,6 @@ public class CellBuilder extends RectangleBuilder<CellBuilder>{
 
     public void setRole(PdfName role) {
         cell.setRole(role);
-    }
-
-    public UUID getId() {
-        return cell.getId();
-    }
-
-    public void setId(UUID id) {
-        cell.setId(id);
     }
 
     public void addHeader(PdfPHeaderCell header) {

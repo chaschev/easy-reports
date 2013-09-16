@@ -18,6 +18,7 @@ package com.chaschev.itext;
 
 import com.itextpdf.text.Chunk;
 import com.itextpdf.text.Element;
+import com.itextpdf.text.Paragraph;
 import com.itextpdf.text.Phrase;
 
 import java.util.List;
@@ -32,24 +33,21 @@ import java.util.List;
 public abstract class StyleFunction {
     ITextBuilder b;
 
+    public void apply(ParagraphBuilder pb){
+
+    }
+
     public void apply(ChunkBuilder c){
 //        throw new UnsupportedOperationException("todo: implement " +
 //            this.getClass().getSimpleName() + ".apply(ChunkBuilder)");
    }
 
-    public void apply(PhraseBuilder ps){
+    public void apply(PhraseBuilder pb){
 //        throw new UnsupportedOperationException("todo: implement " +
 //            this.getClass().getSimpleName() + ".apply(PhraseBuilder)");
     }
 
     public void applyGeneral(Element element, boolean applyToChildrenChunks){
-        if (element instanceof Chunk) {
-            apply(b.reusableChunkBuilder.with((Chunk) element));
-        }else
-        if (element instanceof Phrase) {
-            apply(b.reusePhraseBuilder().with((Phrase) element));
-        }
-
         if(applyToChildrenChunks){
             final List<Chunk> chunks = element.getChunks();
             final ChunkBuilder cb = b.reusableChunkBuilder;
@@ -57,6 +55,16 @@ public abstract class StyleFunction {
             for (Chunk chunk : chunks) {
                 apply(cb.withChunk(chunk));
             }
+        }
+
+        if (element instanceof Chunk) {
+            apply(b.reusableChunkBuilder.with((Chunk) element));
+        }else
+        if (element instanceof Paragraph) {
+            apply(b.reusableParagraphBuilder.with((Paragraph) element));
+        }else
+        if (element instanceof Phrase) {
+            apply(b.reusePhraseBuilder().with((Phrase) element));
         }
     }
 
