@@ -72,15 +72,23 @@ public class BalancedColumnsBuilder {
     private @Nullable ColumnTextBuilder updateAfterRun;
 
 
+    public BalancedColumnsBuilder() {
+    }
+
     public BalancedColumnsBuilder(Rectangle rectangle, ITextBuilder b) {
         this.origRectangle = new RectangleBuilder().reuse(rectangle);
         this.b = b;
     }
 
     public BalancedColumnsBuilder(ColumnTextBuilder ctb, ITextBuilder b) {
+        setColumnText(ctb, b);
+    }
+
+    public BalancedColumnsBuilder setColumnText(ColumnTextBuilder ctb, ITextBuilder b) {
         this.origRectangle = new RectangleBuilder().reuse(ctb.getCurrentRectangle().get());
         updateAfterRun = ctb;
         this.b = b;
+        return this;
     }
 
     public BalancedColumnsBuilder(
@@ -111,6 +119,9 @@ public class BalancedColumnsBuilder {
     }
 
     public BalancingResult go() {
+        Preconditions.checkNotNull(origRectangle);
+        Preconditions.checkNotNull(b);
+
         return _go();
     }
 
@@ -791,5 +802,9 @@ public class BalancedColumnsBuilder {
     public BalancedColumnsBuilder trimSpaceElements(){
         sequence.trim();
         return this;
+    }
+
+    public ElementSequence getSequence() {
+        return sequence;
     }
 }

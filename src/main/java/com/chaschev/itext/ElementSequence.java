@@ -75,4 +75,8 @@ public class ElementSequence {
             elements.remove(elements.size() - 1);
         }
     }
+
+    public boolean isEmpty() {
+        return elements.isEmpty();
+    }
 }
