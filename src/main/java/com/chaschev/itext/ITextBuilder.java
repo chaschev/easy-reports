@@ -114,6 +114,7 @@ public class ITextBuilder  {
         }
 
         try {
+            logger.debug("saving to {}", file.getAbsolutePath());
             FileUtils.writeByteArrayToFile(file, getBytes());
             return this;
         } catch (IOException e) {

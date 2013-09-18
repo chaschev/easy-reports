@@ -258,8 +258,9 @@ public class ChunkBuilder extends ElementBuilder<Chunk, ChunkBuilder> {
         return element.getAccessibleAttribute(key);
     }
 
-    public Chunk setHyphenation(HyphenationEvent hyphenation) {
-        return element.setHyphenation(hyphenation);
+    public ChunkBuilder setHyphenation(HyphenationEvent hyphenation) {
+        element.setHyphenation(hyphenation);
+        return this;
     }
 
     public List<Chunk> getChunks() {

@@ -113,8 +113,9 @@ public abstract class AbstractPhraseBuilder<T extends Phrase, BUILDER extends Ab
         return element.getHyphenation();
     }
 
-    public void setHyphenation(HyphenationEvent hyphenation) {
+    public BUILDER setHyphenation(HyphenationEvent hyphenation) {
         element.setHyphenation(hyphenation);
+        return (BUILDER) this;
     }
 
     public TabSettings getTabSettings() {

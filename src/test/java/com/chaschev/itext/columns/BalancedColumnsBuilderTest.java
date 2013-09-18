@@ -19,13 +19,12 @@ package com.chaschev.itext.columns;
 import com.chaschev.itext.*;
 import com.google.common.collect.Lists;
 import com.itextpdf.text.*;
-import com.itextpdf.text.List;
 import com.itextpdf.text.pdf.BaseFont;
 import com.itextpdf.text.pdf.ColumnText;
+import com.itextpdf.text.pdf.HyphenationAuto;
 import com.itextpdf.text.pdf.PdfPTable;
 import gnu.trove.list.array.TFloatArrayList;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.fest.assertions.api.Assertions;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -33,7 +32,10 @@ import org.junit.Test;
 
 import javax.annotation.Nullable;
 import java.io.File;
-import java.util.*;
+import java.util.Collections;
+import java.util.Random;
+
+import static org.fest.assertions.api.Assertions.assertThat;
 
 /**
  * User: chaschev
@@ -44,6 +46,8 @@ public class BalancedColumnsBuilderTest {
     private static Font headerFont;
     private static Font hugeFont;
     private static Font subHeaderFont;
+
+    public static final HyphenationAuto HYPHENATION = new HyphenationAuto("en", "US", 2, 2);
 
     @Before
     public void createITextBuilder() throws DocumentException {
@@ -75,8 +79,15 @@ public class BalancedColumnsBuilderTest {
                 }
 
                 @Override
+                public void apply(ChunkBuilder c) {
+                    c.setHyphenation(HYPHENATION)
+                    ;
+                }
+
+                @Override
                 public void apply(ParagraphBuilder pb) {
-                    pb.setLeading(11);
+                    pb.setLeading(11)
+                    .setHyphenation(HYPHENATION);
                 }
             })
             .add("header", new StyleFunction() {
@@ -448,6 +459,41 @@ public class BalancedColumnsBuilderTest {
     public void listNonBreakingTest1(){
         ITextBuilder b = createTestBuilder();
 
+        final int margin = 2;
+        final BalancedColumnsBuilder builder = new BalancedColumnsBuilder(new Rectangle(b.getDocument().left(margin), 600, b.getDocument().right(margin), 670), b);
+
+        builder.add(
+            newTitledList(null, Lists.newArrayList(
+                "Advair 500/50 (uticasone propionate 0.5 MG/ACTUAT / salmeterol 0.05 MG/ACTUAT) Dry Powder Inhaler - Every 12 Hours, inhalation",
+                "albuterol 0.417 MG/ML (albuterol sulfate 0.5 MG/ML) Inhalant Solution [Accuneb] - Every 8 Hours, PRN, inhalation",
+                "Coumadin 5 MG Oral Tablet - Every 24 Hours, inhalation",
+                "Furosemide 20 MG - every other day, by mouth",
+                "Glucotrol 2.5 MG Extended Release Tablet - Every 12 Hours, by mouth",
+                "Januvia 50 MG (sitagliptin phosphate monohydrate 64.25 MG) Oral Tablet - Every 12 Hours, by mouth",
+                "Miralax 17 GM per 4 oz Oral Solution - Every 24 Hours, by mouth",
+                "Mucinex 600 MG Extended Release Tablet - Every 12 Hours, PRN, by mouth",
+                "Norco 10/325 (hydrocodone / APAP) Oral Tablet - Every 4 Hours, PRN, by mouth",
+                "pantoprazole 20 MG - Every 24 Hours, by mouth",
+                "Pravachol 40 MG Oral Tablet - Every 24 Hours, by mouth",
+                "predniSONE 20 MG - every other day, by mouth",
+                "ProAir HFA 90 MCG/ACTUAT Metered Dose Inhaler, 200 ACTUAT - Every 24 Hours, PRN, inhalation",
+                "Propylene glycol - Every 24 Hours, in eyes",
+                "Ranitidine 150 MG - Every 24 Hours, by mouth",
+                "Spiriva 18 MCG/ACTUAT (tiotropium bromide 22.5 MCG/ACTUAT) Inhalant Powder - Every 24 Hours, inhalation"
+            ), "bullets")
+        );
+
+        builder.go();
+
+        assertThat(b.getDocument().getPageNumber()).isEqualTo(0);
+
+        b.close().saveToFile(new File(String.format("output/listNonBreakingTest1.pdf")));
+    }
+
+     @Test
+    public void listNonBreakingTest3(){
+        ITextBuilder b = createTestBuilder();
+
         final int margin = 0;
         final BalancedColumnsBuilder builder = new BalancedColumnsBuilder(new Rectangle(b.getDocument().left(margin), 600, b.getDocument().right(margin), 670), b);
 
@@ -482,8 +528,11 @@ public class BalancedColumnsBuilderTest {
 
         builder.go();
 
-        b.close().saveToFile(new File(String.format("output/listNonBreakingTest1.pdf")));
-    }
+         assertThat(b.getDocument().getPageNumber()).isEqualTo(0);
+
+         b.close().saveToFile(new File(String.format("output/listNonBreakingTest3.pdf")));
+
+     }
 
     @Test
     public void reportListBalancesToLeftTest(){
@@ -805,8 +854,8 @@ newTitledList("5. Atrial Fibrillation", Collections.<String>emptyList(), "none")
 
         final float lineHeight = type == ContentType.TABLE ? 13f:11f;
 
-        Assertions.assertThat((float) builder.bestResult.getLeftColumnHeight()).describedAs("left column height").is(equalToAnyOf(0.1f, max * lineHeight, expectedOnLeft * lineHeight));
-        Assertions.assertThat((float) builder.bestResult.getRightColumnHeight()).describedAs("right column height").is(equalToAnyOf(0.1f, max * lineHeight, expectedOnRight * lineHeight));
+        assertThat((float) builder.bestResult.getLeftColumnHeight()).describedAs("left column height").is(equalToAnyOf(0.1f, max * lineHeight, expectedOnLeft * lineHeight));
+        assertThat((float) builder.bestResult.getRightColumnHeight()).describedAs("right column height").is(equalToAnyOf(0.1f, max * lineHeight, expectedOnRight * lineHeight));
     }
 
     private void expectations(String title, BalancedColumnsBuilder builder, int expectedOnLeft, int expectedOnRight) {
@@ -819,8 +868,8 @@ newTitledList("5. Atrial Fibrillation", Collections.<String>emptyList(), "none")
 
         int max = Math.max(expectedOnLeft, expectedOnRight);
 
-        Assertions.assertThat((float) builder.bestResult.getLeftColumnHeight()).describedAs("left column height").is(equalToAnyOf(0.1f, max * 11f, expectedOnLeft * 11f));
-        Assertions.assertThat((float) builder.bestResult.getRightColumnHeight()).describedAs("right column height").is(equalToAnyOf(0.1f, max * 11f, expectedOnRight * 11f));
+        assertThat((float) builder.bestResult.getLeftColumnHeight()).describedAs("left column height").is(equalToAnyOf(0.1f, max * 11f, expectedOnLeft * 11f));
+        assertThat((float) builder.bestResult.getRightColumnHeight()).describedAs("right column height").is(equalToAnyOf(0.1f, max * 11f, expectedOnRight * 11f));
     }
 
     public static org.fest.assertions.core.Condition<Float> equalToAnyOf(final float delta, final float... values) {
@@ -840,7 +889,7 @@ newTitledList("5. Atrial Fibrillation", Collections.<String>emptyList(), "none")
     }
 
     public List newTitledList(@Nullable String title, java.util.List<String> items, String type) {
-        return newTitledList(title, items, type, true);
+        return newTitledList(title, items, type, false);
     }
 
     public List newTitledList(@Nullable String title, java.util.List<String> items, String type, boolean keeptogether) {
